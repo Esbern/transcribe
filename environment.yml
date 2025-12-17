@@ -1,0 +1,22 @@
+name: agri_transcribe
+channels:
+  - pytorch          # High priority: Official GPU builds
+  - nvidia           # High priority: Official CUDA toolkit
+  - conda-forge      # Primary source for general packages
+  - defaults         # Lowest priority
+dependencies:
+  - python=3.11
+  # Core System
+  - ffmpeg           # From conda-forge
+  - psycopg2         # From conda-forge
+  # GPU Stack (Pinned to ensure they come from pytorch/nvidia channels)
+  - pytorch::pytorch
+  - pytorch::torchaudio
+  - nvidia::pytorch-cuda=12.1
+  # General Tools
+  - conda-forge::pandas
+  - conda-forge::jupyterlab
+  - conda-forge::tqdm
+  - conda-forge::scipy
+  - pip:
+      - whisperx     # Best installed via pip to avoid conda-forge/pytorch conflicts
