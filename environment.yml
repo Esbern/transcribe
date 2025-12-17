@@ -1,22 +1,14 @@
 name: agri_transcribe
 channels:
-  - pytorch          # High priority: Official GPU builds
-  - nvidia           # High priority: Official CUDA toolkit
-  - conda-forge      # Primary source for general packages
-  - defaults         # Lowest priority
+  - conda-forge
 dependencies:
-  - python=3.11
-  # Core System
-  - ffmpeg           # From conda-forge
-  - psycopg2         # From conda-forge
-  # GPU Stack (Pinned to ensure they come from pytorch/nvidia channels)
-  - pytorch::pytorch
-  - pytorch::torchaudio
-  - nvidia::pytorch-cuda=12.1
-  # General Tools
-  - conda-forge::pandas
-  - conda-forge::jupyterlab
-  - conda-forge::tqdm
-  - conda-forge::scipy
+  - python=3.10           # 3.10 is safer for WhisperX/ctranslate2 than 3.12
+  - ffmpeg                # Required for audio processing
+  - psycopg2              # Database adapter
+  - pandas
+  - jupyterlab
+  - ipykernel
+  - "pytorch=*=cuda*"     # Your proven syntax to force GPU builds
+  - pip
   - pip:
-      - whisperx     # Best installed via pip to avoid conda-forge/pytorch conflicts
+      - whisperx          # Installed via pip as it's not on conda
