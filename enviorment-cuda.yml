@@ -1,0 +1,10 @@
+name: agri_transcribe
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - jupyterlab
+  - matplotlib
+  - scipy       
+  - numpy
+  - "pytorch=*=cuda*"
