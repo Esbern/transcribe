@@ -2,15 +2,11 @@ name: agri_transcribe
 channels:
   - conda-forge
 dependencies:
-  - python=3.10           # 3.10 is safer for WhisperX/ctranslate2 than 3.12
-  - ffmpeg                # Required for audio processing
-  - psycopg2              # Database adapter
+  - python=3.10           # Safe for WhisperX
+  - ffmpeg                # Audio tools
+  - psycopg2              # Database
   - pandas
   - jupyterlab
-  - ipywidgets 
+  - ipywidgets
   - jupyterlab_widgets
-  - ipykernel
-  - "pytorch=*=cuda*"     # Your proven syntax to force GPU builds
-  - pip
-  - pip:
-      - whisperx          # Installed via pip as it's not on conda
+  - pip                   # We need pip for Step 2 not on conda
