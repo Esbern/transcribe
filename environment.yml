@@ -2,7 +2,7 @@ name: agri_transcribe
 channels:
   - conda-forge
 dependencies:
-  - python=3.10           # Safe for WhisperX
+  - python=3.12           # Safe for WhisperX
   - ffmpeg                # Audio tools
   - psycopg2              # Database
   - pandas
