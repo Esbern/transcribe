@@ -1,4 +1,4 @@
-name: agri_transcribe
+name: transcribe
 channels:
   - conda-forge
 dependencies:
@@ -9,4 +9,5 @@ dependencies:
   - jupyterlab
   - ipywidgets
   - jupyterlab_widgets
+  - "pytorch=*=cuda*"
   - pip                   # We need pip for Step 2 not on conda

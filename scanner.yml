@@ -1,0 +1,12 @@
+paths:
+  master_folder: "C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files - Lydfiler"
+  recipe_file: "./processing_recipe.yaml"
+  output_base_folder: "D:/transcribe"
+
+patterns:
+  # This regex looks for a folder that has "ID" followed by numbers
+  # Example: "2023_Session_ID105" -> extracts "105"
+  folder_id_regex: "nr\\s+(?P<id>\\d+)$"
+  
+  # This regex filters for files ending in Trlr.wav
+  file_regex: ".*Trlr\\.wav$"
