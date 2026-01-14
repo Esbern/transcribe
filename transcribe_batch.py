@@ -173,6 +173,10 @@ def main():
             entry['status'] = 'transcribed'
             entry['processed_at'] = datetime.now().isoformat()
             processed_count += 1
+            
+            # Save progress incrementally to be crash-resilient
+            save_recipe(RECIPE_PATH, recipe)
+            
             # Free GPU memory between items
             torch.cuda.empty_cache()
             gc.collect()
@@ -181,11 +185,15 @@ def main():
             print(f"  ❌ Error processing {interview_id}: {e}")
             entry['status'] = 'error'
             entry['error'] = str(e)
+            
+            # Save error status immediately
+            save_recipe(RECIPE_PATH, recipe)
+            
             torch.cuda.empty_cache()
             gc.collect()
     
-    # Save updated recipe
-    print("\nSaving updated recipe...")
+    # Final save (in case any other updates were missed)
+    print("\nSaving final recipe state...")
     save_recipe(RECIPE_PATH, recipe)
     
     # Summary
