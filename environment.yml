@@ -9,5 +9,4 @@ dependencies:
   - jupyterlab
   - ipywidgets
   - jupyterlab_widgets
-  - "pytorch=*=cuda*"
   - pip                   # We need pip for Step 2 not on conda
