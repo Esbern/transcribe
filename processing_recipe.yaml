@@ -1,544 +1,539 @@
-- id: '195'
-  status: pending
+- files:
+  - E:/lydfiler/251113_131448_TrLR.WAV
+  id: '195'
   output_name: interview_195.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\11201075 - nr 195\251113_131448_TrLR.WAV
-- id: '194'
-  status: pending
+  processed_at: '2026-01-13T17:17:32'
+  status: flac
+- files:
+  - E:/lydfiler/251124_162941_TrLR.WAV
+  - E:/lydfiler/251124_180254_TrLR.WAV
+  id: '194'
   output_name: interview_194.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\11243193 - nr 194\251124_162941_TrLR.WAV
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\11243193 - nr 194\251124_180254_TrLR.WAV
-- id: '187'
-  status: pending
+  processed_at: '2026-01-13T17:37:56'
+  status: flac
+- files:
+  - E:/lydfiler/251126_101206_TrLR.WAV
+  id: '187'
   output_name: interview_187.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\12172338 - nr 187\251126_101206_TrLR.WAV
-- id: '184'
-  status: pending
+  processed_at: '2026-01-13T17:17:39'
+  status: flac
+- files:
+  - E:/lydfiler/\251126_105730_TrLR.WAV
+  id: '184'
   output_name: interview_184.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\12678037 - nr 184\251126_105730_TrLR.WAV
-- id: '183'
-  status: pending
+  processed_at: '2026-01-13T17:17:48'
+  status: flac
+- files:
+  - E:/lydfiler/251124_121129_TrLR.WAV
+  id: '183'
   output_name: interview_183.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\12924194 - nr 183\251124_121129_TrLR.WAV
-- id: '182'
-  status: pending
+  processed_at: '2026-01-13T17:17:57'
+  status: flac
+- files:
+  - E:/lydfiler/111125_082922_TrLR.WAV
+  id: '182'
   output_name: interview_182.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\12924240 - nr 182\111125_082922_TrLR.WAV
-- id: '181'
-  status: pending
+  processed_at: '2026-01-13T17:18:06'
+  status: flac
+- files:
+  - E:/lydfiler/251127_123439_TrLR.WAV
+  - E:/lydfiler/251127_133406_TrLR.WAV
+  id: '181'
   output_name: interview_181.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\13112347 - nr 181\251127_123439_TrLR.WAV
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\13112347 - nr 181\251127_133406_TrLR.WAV
-- id: '180'
-  status: pending
+  processed_at: '2026-01-13T17:18:27'
+  status: flac
+- files:
+  - E:/lydfiler/251127_130936_TrLR.WAV
+  id: '180'
   output_name: interview_180.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\13158002 - nr 180\251127_130936_TrLR.WAV
-- id: '179'
-  status: pending
+  processed_at: '2026-01-13T17:18:33'
+  status: flac
+- files:
+  - E:/lydfiler/251126_130037_TrLR.WAV
+  id: '179'
   output_name: interview_179.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\13165238 - nr 179\251126_130037_TrLR.WAV
-- id: '178'
-  status: pending
+  processed_at: '2026-01-13T17:18:39'
+  status: flac
+- files:
+  - E:/lydfiler/251111_080456_TrLR.WAV
+  id: '178'
   output_name: interview_178.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\13561605 - nr 178\251111_080456_TrLR.WAV
-- id: '177'
-  status: pending
+  processed_at: '2026-01-13T17:18:45'
+  status: flac
+- files:
+  - E:/lydfiler/251202_101654_TrLR.WAV
+  - E:/lydfiler/251202_115007_TrLR.WAV
+  id: '177'
   output_name: interview_177.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\13637385 - nr 177\251202_101654_TrLR.WAV
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\13637385 - nr 177\251202_115007_TrLR.WAV
-- id: '175'
-  status: pending
+  processed_at: '2026-01-13T17:19:09'
+  status: flac
+- files:
+  - E:/lydfiler/251111_075931_TrLR.WAV
+  id: '175'
   output_name: interview_175.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\13731985 - nr 175\251111_075931_TrLR.WAV
-- id: '166'
-  status: pending
+  processed_at: '2026-01-13T17:19:16'
+  status: flac
+- files:
+  - E:/lydfiler/251113_091725_TrLR.WAV
+  - Lydfiler\15245433 - nr 166\251113_091725_TrLR.WAV
+  id: '166'
   output_name: interview_166.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\15245433 - nr 166\251113_091725_TrLR.WAV
-- id: '160'
-  status: pending
+  processed_at: '2026-01-13T17:19:29'
+  status: flac
+- files:
+  - E:/lydfiler/251112_090747_TrLR.WAV
+  id: '160'
   output_name: interview_160.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\16896373 - nr 160\251112_090747_TrLR.WAV
-- id: '158'
-  status: pending
+  processed_at: '2026-01-13T17:19:36'
+  status: flac
+- files:
+  - E:/lydfiler/251126_163111_TrLR.WAV
+  id: '158'
   output_name: interview_158.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\17223984 - nr 158\251126_163111_TrLR.WAV
-- id: '156'
-  status: pending
+  processed_at: '2026-01-13T17:19:44'
+  status: flac
+- files:
+  - E:/lydfiler/251127_124131_TrLR.WAV
+  id: '156'
   output_name: interview_156.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\17327038 - nr 156\251127_124131_TrLR.WAV
-- id: '154'
-  status: pending
+  processed_at: '2026-01-13T17:19:56'
+  status: flac
+- files:
+  - E:/lydfiler/141125_080734_TrLR.WAV
+  id: '154'
   output_name: interview_154.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\17452533 - nr 154\141125_080734_TrLR.WAV
-- id: '152'
-  status: pending
+  processed_at: '2026-01-13T17:20:08'
+  status: flac
+- files:
+  - E:/lydfiler/251202_120045_TrLR.WAV
+  - E:/lydfiler/251202_140454_TrLR.WAV
+  id: '152'
   output_name: interview_152.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\17503243 - nr 152\251202_120045_TrLR.WAV
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\17503243 - nr 152\251202_140454_TrLR.WAV
-- id: '151'
-  status: pending
+  processed_at: '2026-01-13T17:20:33'
+  status: flac
+- files:
+  - E:/lydfiler/251111_170303_TrLR.WAV
+  id: '151'
   output_name: interview_151.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\17618199 - nr 151\251111_170303_TrLR.WAV
-- id: '150'
-  status: pending
+  processed_at: '2026-01-13T17:20:41'
+  status: flac
+- files:
+  - E:/lydfiler/251126_082058_TrLR.WAV
+  id: '150'
   output_name: interview_150.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\17848135 - nr 150\251126_082058_TrLR.WAV
-- id: '145'
-  status: pending
+  processed_at: '2026-01-13T17:20:47'
+  status: flac
+- files:
+  - E:/lydfiler/251111_160347_TrLR.WAV
+  id: '145'
   output_name: interview_145.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\18688646 - nr 145\251111_160347_TrLR.WAV
-- id: '140'
-  status: pending
+  processed_at: '2026-01-13T17:20:52'
+  status: flac
+- files:
+  - E:/lydfiler/251110_172327_TrLR.WAV
+  id: '140'
   output_name: interview_140.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\18989468 - nr 140\251110_172327_TrLR.WAV
-- id: '139'
-  status: pending
+  processed_at: '2026-01-13T17:20:59'
+  status: flac
+- files:
+  - E:/lydfiler/121125_080401_TrLR.WAV
+  id: '139'
   output_name: interview_139.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\19030008 - nr 139\121125_080401_TrLR.WAV
-- id: '138'
-  status: pending
+  processed_at: '2026-01-13T17:21:05'
+  status: flac
+- files:
+  - E:/lydfiler/251114_125532_TrLR.WAV
+  id: '138'
   output_name: interview_138.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\19393380 - nr 138\251114_125532_TrLR.WAV
-- id: '137'
-  status: pending
+  processed_at: '2026-01-13T17:21:13'
+  status: flac
+- files:
+  - E:/lydfiler/251127_100835_TrLR.WAV
+  id: '137'
   output_name: interview_137.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\19516385 - nr 137\251127_100835_TrLR.WAV
-- id: '136'
-  status: pending
+  processed_at: '2026-01-13T17:21:23'
+  status: flac
+- files:
+  - E:/lydfiler/121125_105748_TrLR.WAV
+  id: '136'
   output_name: interview_136.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\19602575 - nr 136\121125_105748_TrLR.WAV
-- id: '135'
-  status: pending
+  processed_at: '2026-01-13T17:21:32'
+  status: flac
+- files:
+  - E:/lydfiler/Sorøvej 67.m4a
+  id: '135'
   output_name: interview_135.flac
-  files:
-  - "C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files - Lydfiler/19705978 - nr 135/Sorøvej 67.m4a"
-- id: '132'
-  status: pending
+  processed_at: '2026-01-13T17:21:37'
+  status: flac
+- files:
+  - E:/lydfiler/251112_132843_TrLR.WAV
+  id: '132'
   output_name: interview_132.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\19936937 - nr 132\251112_132843_TrLR.WAV
-- id: '128'
-  status: pending
+  processed_at: '2026-01-13T17:21:48'
+  status: flac
+- files:
+  - E:/lydfiler/251127_080451_TrLR.WAV
+  id: '128'
   output_name: interview_128.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\20172207 - nr 128\251127_080451_TrLR.WAV
-- id: '126'
-  status: pending
+  processed_at: '2026-01-13T17:21:55'
+  status: flac
+- files:
+  - E:/lydfiler/251124_083242_TrLR.WAV
+  id: '126'
   output_name: interview_126.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\21315141 - nr 126\251124_083242_TrLR.WAV
-- id: '122'
-  status: pending
+  processed_at: '2026-01-13T17:22:02'
+  status: flac
+- files:
+  - E:/lydfiler/251203_150222_TrLR.WAV
+  id: '122'
   output_name: interview_122.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\21610402 - nr 122\251203_150222_TrLR.WAV
-- id: '121'
-  status: pending
+  processed_at: '2026-01-13T17:22:07'
+  status: flac
+- files:
+  - E:/lydfiler/251112_145100_TrLR.WAV
+  id: '121'
   output_name: interview_121.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\21735582 - nr 121\251112_145100_TrLR.WAV
-- id: '120'
-  status: pending
+  processed_at: '2026-01-13T17:22:17'
+  status: flac
+- files:
+  - E:/lydfiler/251211_100037_TrLR.WAV
+  id: '120'
   output_name: interview_120.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\24206904 - nr 120\251211_100037_TrLR.WAV
-- id: '114'
-  status: pending
+  processed_at: '2026-01-13T17:22:23'
+  status: flac
+- files:
+  - E:/lydfiler/251111_100238_TrLR.WAV
+  id: '114'
   output_name: interview_114.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\25505794 - nr 114\251111_100238_TrLR.WAV
-- id: '112'
-  status: pending
+  processed_at: '2026-01-13T17:22:29'
+  status: flac
+- files:
+  - E:/lydfiler/251201_095804_TrLR.WAV
+  id: '112'
   output_name: interview_112.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\25575342 - nr 112\251201_095804_TrLR.WAV
-- id: '111'
-  status: pending
+  processed_at: '2026-01-13T17:22:36'
+  status: flac
+- files:
+  - E:/lydfiler/251127_150736_TrLR.WAV
+  id: '111'
   output_name: interview_111.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\25631188 - nr 111\251127_150736_TrLR.WAV
-- id: '110'
-  status: pending
+  processed_at: '2026-01-13T17:22:41'
+  status: flac
+- files:
+  - E:/lydfiler/241125_093936_TrLR.WAV
+  - E:/lydfiler/241125_111249_TrLR.WAV
+  id: '110'
   output_name: interview_110.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\25765133 - nr 110\241125_093936_TrLR.WAV
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\25765133 - nr 110\241125_111249_TrLR.WAV
-- id: '108'
-  status: pending
+  processed_at: '2026-01-13T17:23:03'
+  status: flac
+- files:
+  - E:/lydfiler/251114_150824_TrLR.WAV
+  id: '108'
   output_name: interview_108.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\26056101 - nr 108\251114_150824_TrLR.WAV
-- id: '104'
-  status: pending
+  processed_at: '2026-01-13T17:23:07'
+  status: flac
+- files:
+  - E:/lydfiler/251203_170917_TrLR.WAV
+  id: '104'
   output_name: interview_104.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\26710170 - nr 104\251203_170917_TrLR.WAV
-- id: '102'
-  status: pending
+  processed_at: '2026-01-13T17:23:13'
+  status: flac
+- files:
+  - E:/lydfiler/251113_120817_TrLR.WAV
+  id: '102'
   output_name: interview_102.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\26830559 - nr 102\251113_120817_TrLR.WAV
-- id: '99'
-  status: pending
+  processed_at: '2026-01-13T17:23:21'
+  status: flac
+- files:
+  - E:/lydfiler/111125_153019_TrLR.WAV
+  id: '99'
   output_name: interview_99.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\27571271 - nr 99\111125_153019_TrLR.WAV
-- id: '97'
-  status: pending
+  processed_at: '2026-01-13T17:23:27'
+  status: flac
+- files:
+  - E:/lydfiler/251126_140617_TrLR.WAV
+  id: '97'
   output_name: interview_97.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\27682006 - nr 97\251126_140617_TrLR.WAV
-- id: '94'
-  status: pending
+  processed_at: '2026-01-13T17:23:36'
+  status: flac
+- files:
+  - E:/lydfiler/251112_171231_TrLR.WAV
+  id: '94'
   output_name: interview_94.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\28821964 - nr 94\251112_171231_TrLR.WAV
-- id: '92'
-  status: pending
+  processed_at: '2026-01-13T17:23:41'
+  status: flac
+- files:
+  - E:/lydfiler/251128_095918_TrLR.WAV
+  id: '92'
   output_name: interview_92.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\29431337 - nr 92\251128_095918_TrLR.WAV
-- id: '91'
-  status: pending
+  processed_at: '2026-01-13T17:23:50'
+  status: flac
+- files:
+  - E:/lydfiler251126_123009_TrMic.WAV
+  - E:/lydfiler/29928150 (fortsættelse).m4a
+  id: '91'
   output_name: interview_91.flac
-  files:
-  - "C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files - Lydfiler/29928150 - nr 91/251126_123009_TrMic.WAV"
-  - "C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files - Lydfiler/29928150 - nr 91/29928150 (fortsættelse).m4a"
-- id: '86'
-  status: pending
+  processed_at: '2026-01-13T17:23:53'
+  status: flac
+- files:
+  - E:/lydfiler/251113_152629_TrLR.WAV
+  id: '86'
   output_name: interview_86.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\30482891 - nr 86\251113_152629_TrLR.WAV
-- id: '83'
-  status: pending
+  processed_at: '2026-01-13T17:24:04'
+  status: flac
+- files:
+  - E:/lydfiler/251124_140725_TrLR.WAV
+  id: '83'
   output_name: interview_83.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\31275342 - nr 83\251124_140725_TrLR.WAV
-- id: '82'
-  status: pending
+  processed_at: '2026-01-13T17:24:17'
+  status: flac
+- files:
+  - E:/lydfiler/251111_120752_TrLR.WAV
+  - E:/lydfiler/251111_122423_TrLR.WAV
+  id: '82'
   output_name: interview_82.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\31726492 - nr 82\251111_120752_TrLR.WAV
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\31726492 - nr 82\251111_122423_TrLR.WAV
-- id: '78'
-  status: pending
+  processed_at: '2026-01-13T17:24:30'
+  status: flac
+- files:
+  - E:/lydfiler/251124_165938_TrLR.WAV
+  id: '78'
   output_name: interview_78.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\33274580 - nr 78\251124_165938_TrLR.WAV
-- id: '77'
-  status: pending
+  processed_at: '2026-01-13T17:24:37'
+  status: flac
+- files:
+  - E:/lydfiler/251113_083647_TrLR.WAV
+  id: '77'
   output_name: interview_77.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\33452462 - nr 77\251113_083647_TrLR.WAV
-- id: '74'
-  status: pending
+  processed_at: '2026-01-13T17:24:47'
+  status: flac
+- files:
+  - E:/lydfiler/251112_093133_TrLR.WAV
+  id: '74'
   output_name: interview_74.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\34026033 - nr 74\251112_093133_TrLR.WAV
-- id: '72'
-  status: pending
+  processed_at: '2026-01-13T17:24:55'
+  status: flac
+- files:
+  - E:/lydfiler/251111_100407_TrLR.WAV
+  id: '72'
   output_name: interview_72.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\34338221 - nr 72\251111_100407_TrLR.WAV
-- id: '71'
-  status: pending
+  processed_at: '2026-01-13T17:25:04'
+  status: flac
+- files:
+  - E:/lydfiler/251125_090601_TrLR.WAV
+  id: '71'
   output_name: interview_71.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\34458413 - nr 71\251125_090601_TrLR.WAV
-- id: '68'
-  status: pending
+  processed_at: '2026-01-13T17:25:10'
+  status: flac
+- files:
+  - E:/lydfiler/251111_175252_TrLR.WAV
+  id: '68'
   output_name: interview_68.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\34854629 - nr 68\251111_175252_TrLR.WAV
-- id: '67'
-  status: pending
+  processed_at: '2026-01-13T17:25:18'
+  status: flac
+- files:
+  - E:/lydfiler/121125_160200_TrLR.WAV
+  - E:/lydfiler/121125_173513_TrLR.WAV
+  id: '67'
   output_name: interview_67.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\34929157 - nr 67\121125_160200_TrLR.WAV
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\34929157 - nr 67\121125_173513_TrLR.WAV
-- id: '66'
-  status: pending
+  processed_at: '2026-01-13T17:25:48'
+  status: flac
+- files:
+  - E:/lydfiler/251114_085857_TrLR.WAV
+  id: '66'
   output_name: interview_66.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\35322302 - nr 66\251114_085857_TrLR.WAV
-- id: '65'
-  status: pending
+  processed_at: '2026-01-13T17:25:56'
+  status: flac
+- files:
+  - E:/lydfiler/251124_151226_TrLR.WAV
+  id: '65'
   output_name: interview_65.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\35546006 - nr 65\251124_151226_TrLR.WAV
-- id: '64'
-  status: pending
+  processed_at: '2026-01-13T17:26:04'
+  status: flac
+- files:
+  - E:/lydfiler/111125_184310_TrLR.WAV
+  id: '64'
   output_name: interview_64.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\35713840 - nr 64\111125_184310_TrLR.WAV
-- id: '62'
-  status: pending
+  processed_at: '2026-01-13T17:26:11'
+  status: flac
+- files:
+  - E:/lydfiler/251127_101630_TrLR.WAV
+  id: '62'
   output_name: interview_62.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\35762531 - nr 62\251127_101630_TrLR.WAV
-- id: '61'
-  status: pending
+  processed_at: '2026-01-13T17:26:19'
+  status: flac
+- files:
+  - E:/lydfiler/251113_163037_TrLR.WAV
+  id: '61'
   output_name: interview_61.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\36025395 - nr 61\251113_163037_TrLR.WAV
-- id: '55'
-  status: pending
+  processed_at: '2026-01-13T17:26:26'
+  status: flac
+- files:
+  - E:/lydfiler/241125_123650_TrLR.WAV
+  id: '55'
   output_name: interview_55.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\36685972 - nr 55\241125_123650_TrLR.WAV
-- id: '52'
-  status: pending
+  processed_at: '2026-01-13T17:26:30'
+  status: flac
+- files:
+  - E:/lydfiler/251113_120952_TrLR.WAV
+  id: '52'
   output_name: interview_52.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\37770531 - nr 52\251113_120952_TrLR.WAV
-- id: '51'
-  status: pending
+  processed_at: '2026-01-13T17:26:33'
+  status: flac
+- files:
+  - E:/lydfiler/251111_145847_TrLR.WAV
+  id: '51'
   output_name: interview_51.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\37903892 - nr 51\251111_145847_TrLR.WAV
-- id: '50'
-  status: pending
+  processed_at: '2026-01-13T17:26:42'
+  status: flac
+- files:
+  - E:/lydfiler/111125_103859_TrLR.WAV
+  id: '50'
   output_name: interview_50.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\38224158 - nr 50\111125_103859_TrLR.WAV
-- id: '48'
-  status: pending
+  processed_at: '2026-01-13T17:26:55'
+  status: flac
+- files:
+  - E:/lydfiler/251112_110336_TrLR.WAV
+  id: '48'
   output_name: interview_48.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\38372041 - nr 48\251112_110336_TrLR.WAV
-- id: '44'
-  status: pending
+  processed_at: '2026-01-13T17:27:03'
+  status: flac
+- files:
+  - E:/lydfiler/251126_080245_TrLR.WAV
+  id: '44'
   output_name: interview_44.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\39928205 - nr 44\251126_080245_TrLR.WAV
-- id: '43'
-  status: pending
+  processed_at: '2026-01-13T17:27:12'
+  status: flac
+- files:
+  - E:/lydfiler/251113_143113_TrLR.WAV
+  id: '43'
   output_name: interview_43.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\40188711 - nr 43\251113_143113_TrLR.WAV
-- id: '37'
-  status: pending
+  processed_at: '2026-01-13T17:27:23'
+  status: flac
+- files:
+  - E:/lydfiler/251111_133512_TrLR.WAV
+  id: '37'
   output_name: interview_37.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\40609768 - nr 37\251111_133512_TrLR.WAV
-- id: '36'
-  status: pending
+  processed_at: '2026-01-13T17:27:30'
+  status: flac
+- files:
+  - E:/lydfiler/251111_172203_TrLR.WAV
+  id: '36'
   output_name: interview_36.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\40613501 - nr 36\251111_172203_TrLR.WAV
-- id: '35'
-  status: pending
+  processed_at: '2026-01-13T17:27:36'
+  status: flac
+- files:
+  - E:/lydfiler/251125_082317_TrLR.WAV
+  id: '35'
   output_name: interview_35.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\40927069 - nr 35\251125_082317_TrLR.WAV
-- id: '34'
-  status: pending
+  processed_at: '2026-01-13T17:27:45'
+  status: flac
+- files:
+  - E:/lydfiler/251126_181012_TrLR.WAV
+  id: '34'
   output_name: interview_34.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\40970290 - nr 34\251126_181012_TrLR.WAV
-- id: '33'
-  status: pending
+  processed_at: '2026-01-13T17:27:51'
+  status: flac
+- files:
+  - E:/lydfiler/251127_150649_TrLR.WAV
+  id: '33'
   output_name: interview_33.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\40985980 - nr 33\251127_150649_TrLR.WAV
-- id: '31'
-  status: pending
+  processed_at: '2026-01-13T17:27:57'
+  status: flac
+- files:
+  - E:/lydfiler/251113_090850_TrLR.WAV
+  id: '31'
   output_name: interview_31.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\42198447 - nr 31\251113_090850_TrLR.WAV
-- id: '23'
-  status: pending
+  processed_at: '2026-01-13T17:28:04'
+  status: flac
+- files:
+  - E:/lydfiler/251114_111427_TrLR.WAV
+  - E:/lydfiler/251114_113244_TrLR.WAV
+  id: '23'
   output_name: interview_23.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\43992457 - nr 23\251114_111427_TrLR.WAV
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\43992457 - nr 23\251114_113244_TrLR.WAV
-- id: '21'
-  status: pending
+  processed_at: '2026-01-13T17:28:17'
+  status: flac
+- files:
+  - E:/lydfiler/251112_093232_TrLR.WAV
+  id: '21'
   output_name: interview_21.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\44995867 - nr 21\251112_093232_TrLR.WAV
-- id: '20'
-  status: pending
+  processed_at: '2026-01-13T17:28:21'
+  status: flac
+- files:
+  - E:/lydfiler/251112_120108_TrLR.WAV
+  id: '20'
   output_name: interview_20.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\45002446 - nr 20\251112_120108_TrLR.WAV
-- id: '16'
-  status: pending
+  processed_at: '2026-01-13T17:28:33'
+  status: flac
+- files:
+  - E:/lydfiler/251125_083416_TrLR.WAV
+  id: '16'
   output_name: interview_16.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\71280659 - nr 16\251125_083416_TrLR.WAV
-- id: '14'
-  status: pending
+  processed_at: '2026-01-13T17:28:42'
+  status: flac
+- files:
+  - E:/lydfiler/251111_154719_TrLR.WAV
+  id: '14'
   output_name: interview_14.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\72182715 - nr 14\251111_154719_TrLR.WAV
-- id: '12'
-  status: pending
+  processed_at: '2026-01-13T17:28:48'
+  status: flac
+- files:
+  - E:/lydfiler/251201_160039_TrLR.WAV
+  id: '12'
   output_name: interview_12.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\74731317 - nr 12\251201_160039_TrLR.WAV
-- id: '10'
-  status: pending
+  processed_at: '2026-01-13T17:28:53'
+  status: flac
+- files:
+  - E:/lydfiler/251124_100644_TrLR.WAV
+  - E:/lydfiler/251124_160441_TrLR.WAV
+  id: '10'
   output_name: interview_10.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\76497354 - nr 10\251124_100644_TrLR.WAV
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\76497354 - nr 10\251124_160441_TrLR.WAV
-- id: '8'
-  status: pending
+  processed_at: '2026-01-13T17:29:09'
+  status: flac
+- files:
+  - E:/lydfiler/251111_133857_TrLR.WAV
+  id: '8'
   output_name: interview_8.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\78460415 - nr 8\251111_133857_TrLR.WAV
-- id: '7'
-  status: pending
+  processed_at: '2026-01-13T17:29:15'
+  status: flac
+- files:
+  - E:/lydfiler/81346828.m4a
+  id: '7'
   output_name: interview_7.flac
-  files:
-  - "C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files - Lydfiler/81346828 - nr 7/81346828.m4a"
-- id: '6'
-  status: pending
+  processed_at: '2026-01-13T17:29:20'
+  status: flac
+- files:
+  - E:/lydfiler/111125_125651_TrLR.WAV
+  id: '6'
   output_name: interview_6.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\84360228 - nr 6\111125_125651_TrLR.WAV
-- id: '5'
-  status: pending
+  processed_at: '2026-01-13T17:29:28'
+  status: flac
+- files:
+  - E:/lydfiler/251112_120906_TrLR.WAV
+  id: '5'
   output_name: interview_5.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\84849618 - nr 5\251112_120906_TrLR.WAV
-- id: '4'
-  status: pending
+  processed_at: '2026-01-13T17:29:36'
+  status: flac
+- files:
+  - E:/lydfiler/251110_173149_TrLR.WAV
+  id: '4'
   output_name: interview_4.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\84855219 - nr 4\251110_173149_TrLR.WAV
-- id: '3'
-  status: pending
+  processed_at: '2026-01-13T17:29:46'
+  status: flac
+- files:
+  - E:/lydfiler/251126_180539_TrLR.WAV
+  id: '3'
   output_name: interview_3.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\87064859 - nr 3\251126_180539_TrLR.WAV
-- id: '2'
-  status: pending
+  processed_at: '2026-01-13T17:29:56'
+  status: flac
+- files:
+  - E:/lydfiler/251124_102702_TrLR.WAV
+  id: '2'
   output_name: interview_2.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\94280559 - nr 2\251124_102702_TrLR.WAV
-- id: '1'
-  status: pending
+  processed_at: '2026-01-13T17:30:06'
+  status: flac
+- files:
+  - E:/lydfiler/251202_090833_TrLR.WAV
+  id: '1'
   output_name: interview_1.flac
-  files:
-  - C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files
-    - Lydfiler\94432154 - nr 1\251202_090833_TrLR.WAV
+  processed_at: '2026-01-13T17:30:14'
+  status: flac
