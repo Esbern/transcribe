@@ -10,7 +10,7 @@ from whisperx.diarize import DiarizationPipeline
 import numpy as np
 
 # Memory tuning defaults
-BATCH_SIZE = 2   # Lower to reduce GPU memory
+BATCH_SIZE = 4   # Lower to reduce GPU memory
 CHUNK_SIZE = 30  # Seconds per transcription chunk
 
 # --- SECURITY FIX ---
@@ -94,7 +94,7 @@ def main():
     DEVICE = "cuda"
     COMPUTE_TYPE = "float16"  # If OOM persists, try "int8" or lower BATCH_SIZE further
     MODEL_NAME = "large-v3"
-    MODEL_DIR = "e:/ai_models/whisper_large_v3"
+    MODEL_DIR = "d:/ai_models/whisper_large_v3"
     DIARIZE_TOKEN = "XXXX"  # Update with your HF token if needed
     
     # Create output directory

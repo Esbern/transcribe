@@ -1,7 +1,7 @@
 paths:
   master_folder: "C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files - Lydfiler"
   recipe_file: "./processing_recipe.yaml"
-  output_base_folder: "E:/transcribe"
+  output_base_folder: "d:/transcribe"
 
 patterns:
   # This regex looks for a folder that has "ID" followed by numbers
