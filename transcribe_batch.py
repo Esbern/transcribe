@@ -5,6 +5,7 @@ import torch
 import functools
 import gc
 from datetime import datetime
+from pathlib import Path
 import whisperx
 from whisperx.diarize import DiarizationPipeline
 import numpy as np
@@ -55,10 +56,15 @@ def transcribe_audio(audio_files, model, align_model, metadata, diarize_model, d
     audio_list = []
     for audio_file in audio_files:
         try:
-            audio = whisperx.load_audio(audio_file)
+            # Convert Path to string for whisperx compatibility
+            audio_file_str = str(audio_file)
+            print(f"    Debug: Loading {audio_file_str} (type: {type(audio_file_str)})")
+            audio = whisperx.load_audio(audio_file_str)
             audio_list.append(audio)
         except Exception as e:
             print(f"  ⚠ Warning: Failed to load {audio_file}: {e}")
+            import traceback
+            traceback.print_exc()
             continue
     
     if not audio_list:
@@ -95,7 +101,7 @@ def main():
     COMPUTE_TYPE = "float16"  # If OOM persists, try "int8" or lower BATCH_SIZE further
     MODEL_NAME = "large-v3"
     MODEL_DIR = "d:/ai_models/whisper_large_v3"
-    DIARIZE_TOKEN = "XXXX"  # Update with your HF token if needed
+    DIARIZE_TOKEN = "XXX"  # Update with your HF token if needed
     
     # Create output directory
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -133,7 +139,8 @@ def main():
         interview_id = entry['id']
         status = entry.get('status', 'pending')
         output_name = entry['output_name']
-        flac_path = os.path.join(FLAC_BASE, output_name)
+        # Use forward slashes for cross-platform compatibility with ffmpeg
+        flac_path = f"{FLAC_BASE}/{output_name}".replace("\\", "/")
         files = [flac_path]
         
         # Skip if not marked as flac or already transcribed
@@ -142,7 +149,7 @@ def main():
             skipped_count += 1
             continue
 
-        if not os.path.exists(flac_path):
+        if not os.path.exists(flac_path.replace("/", "\\")):
             print(f"[{interview_id}] FLAC not found at {flac_path}, skipping and marking error")
             entry['status'] = 'error'
             entry['error'] = f"Missing FLAC: {flac_path}"
