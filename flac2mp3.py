@@ -1,3 +1,4 @@
+
 import os
 import subprocess
 import glob
@@ -7,12 +8,12 @@ INPUT_DIR = r"E:\ledgendary\flac audio"
 OUTPUT_DIR = r"E:\ledgendary\mp3 audio"
 FFMPEG_CMD = "ffmpeg" # If ffmpeg is not in PATH, put full path to ffmpeg.exe here
 
-def compress_files():
+def compress_and_enhance():
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
 
     files = glob.glob(os.path.join(INPUT_DIR, "*.flac"))
-    print(f"Found {len(files)} files to compress...")
+    print(f"Found {len(files)} files to process...")
 
     for file_path in files:
         filename = os.path.basename(file_path)
@@ -23,29 +24,31 @@ def compress_files():
             print(f"Skipping {filename} (already exists)")
             continue
 
-        print(f"Compressing {filename} -> mp3...")
+        print(f"Enhancing & Compressing {filename}...")
         
-        # Command explanation:
-        # -ac 1: Convert to Mono (Stereo is wasteful for interviews)
-        # -b:a 96k: Bitrate 96kbps (Plenty for voice)
-        # -map_metadata 0: Keep metadata if any
+        # --- THE AUDIO CHAIN EXPLAINED ---
+        # 1. highpass=f=100: Removes rumble/hum below 100Hz (AC units, mic handling)
+        # 2. afftdn=nr=15: Reduces background noise by 15 decibels (Safe amount to avoid robotic voice)
+        # 3. loudnorm: Normalizes perceived loudness to broadcast standard (-16 LUFS)
+        audio_filter = "highpass=f=100, afftdn=nr=15, loudnorm=I=-16:TP=-1.5:LRA=11"
+
         cmd = [
             FFMPEG_CMD, 
-            '-i', file_path, 
-            '-ac', '1',       
-            '-b:a', '96k',    
+            '-i', file_path,
+            '-af', audio_filter, # Apply our enhancement chain
+            '-ac', '1',          # Mono
+            '-b:a', '96k',       # 96kbps MP3
             output_path
         ]
         
         try:
-            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        except Exception as e:
-            print(f"Error converting {filename}: {e}")
-            # Fallback: Check if ffmpeg is actually installed
-            print("Make sure FFmpeg is installed and added to your system PATH.")
-            return
+            # We use a slight trick here to hide the massive ffmpeg log but show errors
+            subprocess.run(cmd, check=True, stderr=subprocess.PIPE)
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Error converting {filename}: {e.stderr.decode()}")
+            continue
 
-    print("All done! Files are now in", OUTPUT_DIR)
+    print("✅ All done! Enhanced files are in", OUTPUT_DIR)
 
 if __name__ == "__main__":
-    compress_files()
+    compress_and_enhance()
