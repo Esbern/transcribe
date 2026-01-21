@@ -4,9 +4,9 @@ import glob
 
 # --- CONFIGURATION ---
 # Use raw strings (r'...') to handle Windows backslashes correctly
-INPUT_DIR_TRANSCRIPTS = r"C:\data\interview - wisper"
-INPUT_DIR_AUDIO = r"C:\data\audio_interview"
-OUTPUT_DIR = r"C:\data\interview"
+INPUT_DIR_TRANSCRIPTS = r"E:\ledgendary\\interview_cleaned"
+INPUT_DIR_AUDIO = r"E:\ledgendary\mp3 audio_small"
+OUTPUT_DIR = r"E:\ledgendary\labek_studio_format"
 
 # This matches the structure inside your Docker container
 # If you mount C:\data\audio_interview to /label-studio/files, keep this empty/relative
