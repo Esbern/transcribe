@@ -235,9 +235,18 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
     del y, y_mono
     gc.collect()
 
+    # Read metadata from recipe
+    spk_left = int(item.get('speakers_left', 0))
+    spk_right = int(item.get('speakers_right', 0))
+    sep_db = float(item.get('separation_db', 0))
+
     # 1. Diarization
     logger.info("   🧠 Running Diarization...")
-    diarization = diarization_pipeline(str(temp_wav), min_speakers=2, max_speakers=2)
+    # Allow more speakers if the recipe suggests it (default to 2 min, loose max)
+    min_spk = 2
+    max_spk = max(2, spk_left + spk_right) if (spk_left + spk_right) > 0 else None
+    
+    diarization = diarization_pipeline(str(temp_wav), min_speakers=min_spk, max_speakers=max_spk)
 
     # 2. Transcription
     logger.info("   ✍️  Transcribing...")
@@ -249,9 +258,9 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
     current_speaker = None
     current_text_buffer = []
     current_start = 0.0
-    # Check separation stats from recipe
-    sep_db = float(item.get('separation_db', 0))
-    is_hybrid = sep_db > 5.0 # Threshold
+    
+    # Hybrid Logic: If separation is good (>5dB) AND Left channel has exactly 1 speaker (Interviewer)
+    is_hybrid = sep_db > 5.0 and spk_left == 1
 
     for chunk in transcript['chunks']:
         start, end = chunk['timestamp']
@@ -267,11 +276,23 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
                 max_overlap = overlap
                 best_speaker = speaker
         
-        # Hybrid Logic: If separation is good, check which channel is louder during this segment
-        # Note: We loaded mono for processing, so we can't check stereo energy here easily without reloading.
-        # For now, we rely on the diarization speaker ID mapping if we implemented it, 
-        # or we assume the Diarization step handled it. 
-        # (To keep memory low, we skip reloading stereo here as requested by the memory optimization goal).
+        # Hybrid Logic Override
+        if is_hybrid:
+            try:
+                # Read just this segment from the stereo file (Memory Safe)
+                start_frame = int(start * 16000)
+                frames_to_read = int((end - start) * 16000)
+                y_chunk, _ = sf.read(str(audio_path), start=start_frame, frames=frames_to_read)
+                
+                if y_chunk.ndim > 1:
+                    # Calculate RMS energy for Left (0) and Right (1)
+                    rms_l = np.sqrt(np.mean(y_chunk[:, 0]**2))
+                    rms_r = np.sqrt(np.mean(y_chunk[:, 1]**2))
+                    
+                    if rms_l > rms_r:
+                        best_speaker = "LEFT (Student)"
+            except Exception as e:
+                pass # Fallback to AI speaker ID if read fails
         
         # Merge Logic
         if best_speaker == current_speaker:
