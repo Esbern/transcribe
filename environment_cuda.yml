@@ -9,21 +9,22 @@ dependencies:
   - pandas
   - jupyterlab
   - ipywidgets
+  - "numpy<2.0"
   - pip
 
   # --- AI Engine (Pip with CUDA) ---
   - pip:
       # Force NVIDIA CUDA 12.1 versions
       - --index-url https://download.pytorch.org/whl/cu121
-      - torch
-      - torchaudio
+      - "torch==2.5.1"
+      - "torchaudio==2.5.1"
       
       # Standard packages (Reset index to PyPi)
       - --extra-index-url https://pypi.org/simple
       - transformers
       - accelerate
       - peft
-      - pyannote.audio
+      - "pyannote.audio>=3.1.1"
       - silero-vad
       - noisereduce
       - soundfile

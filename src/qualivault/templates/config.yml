@@ -4,6 +4,14 @@ project_name: "{{PROJECT_NAME}}"
 # Leave empty if models are cached or you are logged in via CLI.
 hf_token: ""
 
+# Suppress technical warnings (DeprecationWarning, FutureWarning) to keep output clean
+suppress_warnings: true
+
+# Transcription Settings
+transcription:
+  language: "da"
+  topic_prompt: "Dette er et interview om landbrug, landmandsliv, permakultur, høst, maskiner og drift."
+
 paths:
   # Where are your raw audio files located?
   org_audio_folder: "./audio_input"
@@ -11,6 +19,9 @@ paths:
   # Where should the converted FLAC files go?
   # IMPORTANT: Keep this OUTSIDE the project folder to avoid bloating your git repo.
   flac_output_folder: "../flac_cache"
+  
+  # Where should AI models be cached? (Prevents re-downloading)
+  models_folder: "../models"
   
   # Where should the transcripts and analysis go?
   output_base_folder: "./output"

@@ -28,6 +28,22 @@ def create_workspace(project_name):
     else:
         print("  ℹ️  Notebook already exists")
 
+    # 3. Create Transcribe Notebook
+    transcribe_nb_path = nb_dir / "02_Transcribe.ipynb"
+    if not transcribe_nb_path.exists():
+        create_transcribe_notebook(transcribe_nb_path)
+        print("  ✅ Created template: notebooks/02_Transcribe.ipynb")
+    else:
+        print("  ℹ️  Notebook already exists")
+
+    # 4. Create Export Notebook
+    export_nb_path = nb_dir / "03_Export_Obsidian.ipynb"
+    if not export_nb_path.exists():
+        create_export_notebook(export_nb_path)
+        print("  ✅ Created template: notebooks/03_Export_Obsidian.ipynb")
+    else:
+        print("  ℹ️  Notebook already exists")
+
     # 3. Create Setup Notebook (For Regex Testing)
     setup_nb_path = nb_dir / "00_Setup_and_Scan.ipynb"
     if not setup_nb_path.exists():
@@ -49,6 +65,26 @@ def create_prepare_notebook(path):
     if template_path.exists():
         shutil.copy(template_path, path)
         print("  ✅ Created prepare notebook from template")
+    else:
+        print(f"  ⚠️ Template not found at {template_path}")
+
+def create_transcribe_notebook(path):
+    """Copies the transcribe notebook from templates."""
+    template_path = Path(__file__).parent / "templates" / "02_Transcribe.ipynb"
+    
+    if template_path.exists():
+        shutil.copy(template_path, path)
+        print("  ✅ Created transcribe notebook from template")
+    else:
+        print(f"  ⚠️ Template not found at {template_path}")
+
+def create_export_notebook(path):
+    """Copies the export notebook from templates."""
+    template_path = Path(__file__).parent / "templates" / "03_Export_Obsidian.ipynb"
+    
+    if template_path.exists():
+        shutil.copy(template_path, path)
+        print("  ✅ Created export notebook from template")
     else:
         print(f"  ⚠️ Template not found at {template_path}")
 

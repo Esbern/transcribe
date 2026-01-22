@@ -12,7 +12,10 @@ dependencies = [
     "python-dotenv",
     "huggingface_hub",
     "pyyaml",
-    "jupyterlab"
+    "jupyterlab",
+    "librosa",
+    "soundfile",
+    "pyannote.audio"
 ]
 
 [project.scripts]

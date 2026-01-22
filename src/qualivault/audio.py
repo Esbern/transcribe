@@ -3,6 +3,9 @@ import logging
 import json
 import shutil
 from pathlib import Path
+import librosa
+import numpy as np
+import soundfile as sf
 
 logger = logging.getLogger("QualiVault")
 
@@ -85,3 +88,80 @@ def split_stereo(input_path, output_dir):
     
     subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return left_path, right_path
+
+def analyze_channel_separation(audio_path, pipeline):
+    print(f"  🔍 Diagnosing: {audio_path.name}")
+    stats = {"separation_status": "Unknown", "speakers_left": 0, "speakers_right": 0}
+    
+    try:
+        # 1. Load Audio (Stereo, first 60s for speed)
+        y, sr = librosa.load(audio_path, mono=False, sr=16000, duration=60)
+    except Exception as e:
+        print(f"  ❌ Error loading audio: {e}")
+        return stats
+
+    if y.ndim < 2:
+        print("  ❌ File is Mono. Cannot check separation.")
+        stats["separation_status"] = "Mono"
+        return stats
+
+    left_channel = y[0]
+    right_channel = y[1]
+    
+    # --- METRIC 1: CHANNEL DOMINANCE ---
+    frame_length = 16000 
+    hop_length = 8000    
+    
+    rms_l = librosa.feature.rms(y=left_channel, frame_length=frame_length, hop_length=hop_length)[0]
+    rms_r = librosa.feature.rms(y=right_channel, frame_length=frame_length, hop_length=hop_length)[0]
+    
+    rms_r = np.maximum(rms_r, 1e-6)
+    rms_l = np.maximum(rms_l, 1e-6)
+    
+    db_diff = 20 * np.log10(rms_l / rms_r)
+    
+    silence_thresh = 0.005
+    active_mask = (rms_l > silence_thresh) | (rms_r > silence_thresh)
+    
+    if np.any(active_mask):
+        avg_separation = np.mean(np.abs(db_diff[active_mask]))
+    else:
+        avg_separation = 0.0
+        
+    print(f"  📊 Avg Separation: {avg_separation:.1f} dB")
+    stats["separation_db"] = float(avg_separation)
+    
+    if avg_separation > 6.0:
+        stats["separation_status"] = "Excellent"
+        print("  ✅ Status: EXCELLENT Separation")
+    elif avg_separation > 3.0:
+        stats["separation_status"] = "Moderate"
+        print("  ⚠️ Status: MODERATE Bleed")
+    else:
+        stats["separation_status"] = "Poor"
+        print("  ❌ Status: POOR Separation")
+
+    # --- METRIC 2: SPEAKER COUNT ---
+    if pipeline:
+        print("  🧠 Counting Speakers (AI)...")
+        temp_l = audio_path.parent / "temp_L.wav"
+        temp_r = audio_path.parent / "temp_R.wav"
+        
+        sf.write(temp_l, left_channel, sr)
+        sf.write(temp_r, right_channel, sr)
+        
+        try:
+            diarization_l = pipeline(str(temp_l))
+            stats["speakers_left"] = len(set(label for _, _, label in diarization_l.itertracks(yield_label=True)))
+            print(f"     L : {stats['speakers_left']} speakers")
+            
+            diarization_r = pipeline(str(temp_r))
+            stats["speakers_right"] = len(set(label for _, _, label in diarization_r.itertracks(yield_label=True)))
+            print(f"     R :  {stats['speakers_right']} speakers")
+        except Exception as e:
+            print(f"  ⚠️ Diarization error: {e}")
+        finally:
+            if temp_l.exists(): temp_l.unlink()
+            if temp_r.exists(): temp_r.unlink()
+            
+    return stats

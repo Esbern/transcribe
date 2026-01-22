@@ -9,19 +9,20 @@ dependencies:
   - pandas
   - jupyterlab            # The user interface
   - ipywidgets
+  - "numpy<2.0"
   - pip                   # The installer
   
   # --- AI Engine (Pip) ---
   - pip:
       # Core AI (Mac auto-detects MPS)
-      - torch
-      - torchaudio
+      - "torch==2.5.1"
+      - "torchaudio==2.5.1"
       
       # The QualiVault Logic Stack
       - transformers      # Whisper model
       - accelerate        # Optimization
       - peft              # LoRA loading
-      - pyannote.audio    # Diarization
+      - "pyannote.audio>=3.1.1"   # Diarization
       - silero-vad        # Loop prevention
       - noisereduce       # Bleed removal
       - soundfile
