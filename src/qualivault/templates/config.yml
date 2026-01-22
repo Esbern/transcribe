@@ -1,0 +1,26 @@
+project_name: "{{PROJECT_NAME}}"
+
+# Hugging Face Token (Required for Pyannote/Diarization)
+# Leave empty if models are cached or you are logged in via CLI.
+hf_token: ""
+
+paths:
+  # Where are your raw audio files located?
+  org_audio_folder: "./audio_input"
+  
+  # Where should the converted FLAC files go?
+  # IMPORTANT: Keep this OUTSIDE the project folder to avoid bloating your git repo.
+  flac_output_folder: "../flac_cache"
+  
+  # Where should the transcripts and analysis go?
+  output_base_folder: "./output"
+
+patterns:
+  # Regex to extract an ID from the folder name (e.g., "Session_101" -> "101")
+  folder_id_regex: ".*(?P<id>\\d+).*"
+  
+  # Regex to identify ALL audio files (for auditing/checking)
+  all_audio_regex: ".*\\.(wav|mp3|m4a|flac)$"
+
+  # Regex to identify TARGET audio files to process (e.g. specific recorder suffix)
+  target_audio_regex: ".*Trlr\\.wav$"

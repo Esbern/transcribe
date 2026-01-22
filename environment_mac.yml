@@ -1,0 +1,28 @@
+name: qualivault
+channels:
+  - conda-forge
+dependencies:
+  # --- System & Data Tools (Conda-Forge) ---
+  - python=3.11           # Stable for audio/AI libs
+  - ffmpeg                # Critical for audio conversion
+  - git                   # Needed to install your package
+  - pandas
+  - jupyterlab            # The user interface
+  - ipywidgets
+  - pip                   # The installer
+  
+  # --- AI Engine (Pip) ---
+  - pip:
+      # Core AI (Mac auto-detects MPS)
+      - torch
+      - torchaudio
+      
+      # The QualiVault Logic Stack
+      - transformers      # Whisper model
+      - accelerate        # Optimization
+      - peft              # LoRA loading
+      - pyannote.audio    # Diarization
+      - silero-vad        # Loop prevention
+      - noisereduce       # Bleed removal
+      - soundfile
+      - librosa

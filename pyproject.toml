@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qualivault"
+version = "0.1.0"
+description = "A local-first, GDPR-compliant tool for transcribing and analyzing qualitative interviews."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "python-dotenv",
+    "huggingface_hub",
+    "pyyaml",
+    "jupyterlab"
+]
+
+[project.scripts]
+qualivault = "qualivault.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+qualivault = ["templates/*"]

@@ -1,0 +1,30 @@
+name: qualivault
+channels:
+  - conda-forge
+dependencies:
+  # --- System & Data Tools ---
+  - python=3.11
+  - ffmpeg
+  - git
+  - pandas
+  - jupyterlab
+  - ipywidgets
+  - pip
+
+  # --- AI Engine (Pip with CUDA) ---
+  - pip:
+      # Force NVIDIA CUDA 12.1 versions
+      - --index-url https://download.pytorch.org/whl/cu121
+      - torch
+      - torchaudio
+      
+      # Standard packages (Reset index to PyPi)
+      - --extra-index-url https://pypi.org/simple
+      - transformers
+      - accelerate
+      - peft
+      - pyannote.audio
+      - silero-vad
+      - noisereduce
+      - soundfile
+      - librosa
