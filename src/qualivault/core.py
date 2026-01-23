@@ -16,6 +16,12 @@ import soundfile as sf
 import pandas as pd
 import numpy as np
 
+try:
+    from IPython.display import clear_output
+except ImportError:
+    def clear_output(wait=False):
+        pass
+
 # Configure logging for clear user feedback
 logging.basicConfig(
     level=logging.INFO, 
@@ -191,6 +197,7 @@ def process_recipe(recipe_path, flac_dir, output_dir, config=None, hf_token=None
     updated = False
     for item in recipe:
         if item.get('status') in ['pending', 'failed']:
+            clear_output(wait=True)
             try:
                 csv_path = process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, language, prompt_ids)
                 if csv_path:
