@@ -101,9 +101,27 @@ def analyze_channel_separation(audio_path, pipeline):
         print(f"  ❌ Error loading audio: {e}")
         return stats
 
+    # Handle Mono Files
     if y.ndim < 2:
-        print("  ❌ File is Mono. Cannot check separation.")
+        print("  ℹ️ File is Mono. Analyzing as single channel.")
         stats["separation_status"] = "Mono"
+        
+        # Still count speakers in the mono file
+        if pipeline:
+            print("  🧠 Counting Speakers (AI)...")
+            temp_file = audio_path.parent / "temp_mono.wav"
+            sf.write(temp_file, y, sr)
+            
+            try:
+                diarization = pipeline(str(temp_file))
+                stats["speakers_left"] = len(set(label for _, _, label in diarization.itertracks(yield_label=True)))
+                print(f"     Speakers: {stats['speakers_left']}")
+            except Exception as e:
+                print(f"  ⚠️ Diarization error: {e}")
+            finally:
+                if temp_file.exists():
+                    temp_file.unlink()
+        
         return stats
 
     left_channel = y[0]

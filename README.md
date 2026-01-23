@@ -4,11 +4,8 @@
 
 **QualiVault** is a local-first, GDPR-compliant tool for transcribing and analyzing qualitative interviews. It processes audio on your local machine (supporting Mac Silicon and NVIDIA GPUs) and outputs an Obsidian-ready Markdown vault.
 
-to create the enviorment run 
 ## 🚀 Installation
 
-micromamba create -f .\environment.yml
-due to cpmpatability problmens with wisperx wisperx and pytorch must both be installed using pip
 ### 1. Prerequisites
 Ensure you have `conda` or `micromamba` installed.
 
@@ -18,7 +15,6 @@ git clone <your-repo-url>
 cd qualivault
 ```
 
-pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124
 ### 3. Create the Environment
 **For Mac (Apple Silicon):**
 ```bash
@@ -26,21 +22,39 @@ micromamba create -f environment_mac.yml
 micromamba activate qualivault
 ```
 
-pip install whisperx
 **For Windows/Linux (NVIDIA CUDA):**
 ```bash
 micromamba create -f environment_cuda.yml
 micromamba activate qualivault
 ```
 
+### 4. Install PyTorch and Dependencies
+Due to compatibility issues, PyTorch and WhisperX must be installed separately using pip.
+
+**For Mac:**
+```bash
+pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1
+pip install whisperx
 pip install -U label-studio
-### 4. Install the Package
+```
+
+**For Windows/Linux (CUDA):**
+```bash
+pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124
+pip install whisperx
+pip install -U label-studio
+```
+
+### 5. Install the Package
 ```bash
 pip install -e .
 ```
 
-to run label studio run the following from command line
+### 6. Run Label Studio
+To launch Label Studio for annotation:
+```bash
 label-studio
+```
 ## 🛠️ Project Workflow
 
 QualiVault uses a **Project-based** structure to ensure data isolation. All projects are created inside the `projects/` directory.

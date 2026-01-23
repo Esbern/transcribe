@@ -8,7 +8,7 @@ import subprocess
 from pathlib import Path
 import warnings
 from huggingface_hub import login
-from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline, TextStreamer
+from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 from pyannote.audio import Pipeline
 from pyannote.core import Segment
 import librosa
@@ -148,6 +148,13 @@ def scan_audio_folder(base_path, folder_re, file_re):
 def process_recipe(recipe_path, flac_dir, output_dir, config=None, hf_token=None, cache_dir=None):
     """
     Main loop to process the recipe file.
+    Expects multi-stage status fields on each item:
+      - convert_status: pending|converted|error
+      - analysis_status: pending|analyzed|error
+      - transcribe_status: pending|transcribed|error
+      - status: summary (mirrors the latest stage)
+      - last_good_status: last successful stage label
+    Items are transcribed only when conversion and analysis have succeeded.
     """
     recipe_path = Path(recipe_path)
     flac_dir = Path(flac_dir)
@@ -196,21 +203,98 @@ def process_recipe(recipe_path, flac_dir, output_dir, config=None, hf_token=None
 
     updated = False
     for item in recipe:
-        if item.get('status') in ['pending', 'failed']:
-            clear_output(wait=True)
-            try:
-                csv_path = process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, language, prompt_ids)
-                if csv_path:
-                    item['status'] = 'completed'
-                    item['transcript_path'] = str(csv_path)
-                    updated = True
-            except Exception as e:
-                logger.error(f"❌ Failed processing {item['output_name']}: {e}")
-                item['status'] = 'failed'
-                item['error_msg'] = str(e)
+        # Track original values to see if we mutate
+        orig = {
+            'status': item.get('status'),
+            'last_good_status': item.get('last_good_status'),
+            'convert_status': item.get('convert_status'),
+            'analysis_status': item.get('analysis_status'),
+            'transcribe_status': item.get('transcribe_status'),
+        }
+
+        # Ensure new multi-stage fields exist for backward compatibility
+        item.setdefault('status', 'pending')
+        item.setdefault('last_good_status', item.get('last_good_status', 'none'))
+
+        # Heuristic defaults
+        flac_exists = (flac_dir / item.get('output_name', '')).exists()
+        has_analysis = 'separation_status' in item or 'speakers_left' in item or 'separation_db' in item
+        has_transcript = 'transcript_path' in item and Path(item['transcript_path']).exists()
+
+        item.setdefault('convert_status', 'converted' if flac_exists else item.get('status', 'pending'))
+        item.setdefault('analysis_status', 'analyzed' if has_analysis else item.get('status', 'pending'))
+        item.setdefault('transcribe_status', 'transcribed' if has_transcript else 'pending')
+
+        # Normalize legacy values
+        if item.get('convert_status') in ['completed', 'done']:
+            item['convert_status'] = 'converted'
+        if item.get('analysis_status') in ['completed', 'done']:
+            item['analysis_status'] = 'analyzed'
+        if item.get('transcribe_status') in ['completed', 'done']:
+            item['transcribe_status'] = 'transcribed'
+
+        # Set last_good_status to highest completed stage if unknown
+        if item.get('last_good_status', 'none') == 'none':
+            if item.get('transcribe_status') == 'transcribed':
+                item['last_good_status'] = 'transcribed'
+            elif item.get('analysis_status') == 'analyzed':
+                item['last_good_status'] = 'analyzed'
+            elif item.get('convert_status') == 'converted':
+                item['last_good_status'] = 'converted'
+
+        # If normalization changed anything, persist later
+        if any([
+            item.get('status') != orig['status'],
+            item.get('last_good_status') != orig['last_good_status'],
+            item.get('convert_status') != orig['convert_status'],
+            item.get('analysis_status') != orig['analysis_status'],
+            item.get('transcribe_status') != orig['transcribe_status'],
+        ]):
+            updated = True
+
+        convert_status = item.get('convert_status')
+        analysis_status = item.get('analysis_status')
+        transcribe_status = item.get('transcribe_status')
+
+        # Skip already transcribed
+        if transcribe_status == 'transcribed':
+            logger.info(f"⏭️  Skipping {item['output_name']} (transcribed)")
+            continue
+
+        # Skip until previous stages are good
+        if convert_status != 'converted':
+            logger.info(f"⏭️  Waiting for conversion: {item['output_name']} (convert_status={convert_status})")
+            continue
+        if analysis_status != 'analyzed':
+            logger.info(f"⏭️  Waiting for analysis: {item['output_name']} (analysis_status={analysis_status})")
+            continue
+
+        # Skip errors unless manually reset to pending
+        if transcribe_status == 'error':
+            logger.info(f"⏭️  Previous transcription error: {item['output_name']} (reset transcribe_status to 'pending' to retry)")
+            continue
+
+        # Ready to transcribe
+        clear_output(wait=True)
+        try:
+            csv_path = process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, language, prompt_ids)
+            if csv_path:
+                item['transcribe_status'] = 'transcribed'
+                item['status'] = 'transcribed'
+                item['last_good_status'] = 'transcribed'
+                item['transcript_path'] = str(csv_path)
                 updated = True
-        else:
-            logger.info(f"⏭️  Skipping {item['output_name']} (Status: {item.get('status')})")
+                with open(recipe_path, 'w') as f:
+                    yaml.dump(recipe, f, sort_keys=False)
+        except Exception as e:
+            logger.error(f"❌ Failed processing {item['output_name']}: {e}")
+            item['transcribe_status'] = 'error'
+            item['status'] = 'error'
+            item['error_msg'] = str(e)
+            updated = True
+            with open(recipe_path, 'w') as f:
+                yaml.dump(recipe, f, sort_keys=False)
+            continue
 
     if updated:
         with open(recipe_path, 'w') as f:
@@ -427,26 +511,21 @@ class Transcriber:
     def transcribe(self, audio_input, language="da", prompt_ids=None):
         # logger.info(f"🎙️ Transcribing segment...") # Reduced logging for segment loop
         
-        # Use TextStreamer to show real-time transcription progress (Debug Info)
-        streamer = TextStreamer(self.processor.tokenizer, skip_prompt=True, decode_kwargs={"skip_special_tokens": True})
-        
-        generate_kwargs = {
-            "language": language, 
-            "task": "transcribe", 
-            "streamer": streamer, 
-            "num_beams": self.config.get("num_beams", 1),
-            "condition_on_prev_tokens": self.config.get("condition_on_prev_tokens", False),
-            "repetition_penalty": self.config.get("repetition_penalty", 1.1),
-            "no_speech_threshold": self.config.get("no_speech_threshold", 0.6)
-        }
-        if prompt_ids is not None:
-            generate_kwargs["prompt_ids"] = prompt_ids
-            
         # Handle both file path and numpy array
         if isinstance(audio_input, (str, Path)):
             inputs = str(audio_input)
         else:
             inputs = {"array": audio_input, "sampling_rate": 16000}
+        
+        # Build generate_kwargs carefully - some options cause logprobs issues
+        generate_kwargs = {
+            "language": language, 
+            "task": "transcribe"
+        }
+        
+        # Only add prompt_ids if provided
+        if prompt_ids is not None:
+            generate_kwargs["prompt_ids"] = prompt_ids
             
         result = self.pipe(inputs, generate_kwargs=generate_kwargs)
         return result
