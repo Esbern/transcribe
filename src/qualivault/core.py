@@ -247,6 +247,11 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
     max_spk = max(2, spk_left + spk_right) if (spk_left + spk_right) > 0 else None
     
     diarization = diarization_pipeline(str(temp_wav), min_speakers=min_spk, max_speakers=max_spk)
+    
+    # Memory cleanup after Diarization to prepare for Whisper
+    if torch.backends.mps.is_available():
+        torch.mps.empty_cache()
+    gc.collect()
 
     # 2. Transcription
     logger.info("   ✍️  Transcribing...")
@@ -366,7 +371,7 @@ class Transcriber:
             max_new_tokens=128,
             chunk_length_s=30,
             stride_length_s=(5, 5),
-            batch_size=16,
+            batch_size=2,
             return_timestamps=True,
             torch_dtype=self.torch_dtype,
             device=self.device,
