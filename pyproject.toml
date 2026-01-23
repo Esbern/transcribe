@@ -15,7 +15,8 @@ dependencies = [
     "jupyterlab",
     "librosa",
     "soundfile",
-    "pyannote.audio"
+    "pyannote.audio",
+    "noisereduce"
 ]
 
 [project.scripts]

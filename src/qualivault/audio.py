@@ -6,6 +6,7 @@ from pathlib import Path
 import librosa
 import numpy as np
 import soundfile as sf
+import noisereduce as nr
 
 logger = logging.getLogger("QualiVault")
 
@@ -165,3 +166,29 @@ def analyze_channel_separation(audio_path, pipeline):
             if temp_r.exists(): temp_r.unlink()
             
     return stats
+
+def apply_noise_gate(input_path, output_path, prop_decrease=1.0):
+    """
+    Applies stationary noise reduction to the audio file.
+    Useful for removing constant background hiss/hum.
+    """
+    check_ffmpeg()
+    input_path = Path(input_path)
+    output_path = Path(output_path)
+    
+    logger.info(f"  🧹 Applying Noise Gate: {input_path.name}")
+    
+    try:
+        # Load audio
+        y, sr = librosa.load(input_path, sr=None, mono=False)
+        
+        # Apply reduction (stationary mode)
+        y_reduced = nr.reduce_noise(y=y, sr=sr, prop_decrease=prop_decrease, stationary=True)
+        
+        # Save
+        sf.write(output_path, y_reduced.T if y.ndim > 1 else y_reduced, sr)
+        logger.info(f"  ✅ Saved cleaned audio: {output_path.name}")
+        return True
+    except Exception as e:
+        logger.error(f"  ❌ Noise Gate failed: {e}")
+        return False
