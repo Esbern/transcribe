@@ -8,8 +8,9 @@ import subprocess
 from pathlib import Path
 import warnings
 from huggingface_hub import login
-from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
+from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline, TextStreamer
 from pyannote.audio import Pipeline
+from pyannote.core import Segment
 import librosa
 import soundfile as sf
 import pandas as pd
@@ -156,21 +157,21 @@ def process_recipe(recipe_path, flac_dir, output_dir, config=None, hf_token=None
 
     # Initialize Models
     device = get_device()
-    transcriber = Transcriber(device=device, cache_dir=cache_dir)
+    transcription_config = config.get("transcription", {}) if config else {}
+    transcriber = Transcriber(device=device, cache_dir=cache_dir, config=transcription_config)
     
     # Prepare Transcription Settings
     language = "da"
     prompt_ids = None
-    if config and "transcription" in config:
-        language = config["transcription"].get("language", "da")
-        topic_prompt = config["transcription"].get("topic_prompt")
-        if topic_prompt:
-            prompt_ids = transcriber.processor.get_prompt_ids(topic_prompt)
-            # Fix: Ensure prompt_ids is a Tensor (not numpy) and on the correct device
-            if isinstance(prompt_ids, (np.ndarray, list)):
-                prompt_ids = torch.tensor(prompt_ids)
-            if isinstance(prompt_ids, torch.Tensor):
-                prompt_ids = prompt_ids.to(device)
+    language = transcription_config.get("language", "da")
+    topic_prompt = transcription_config.get("topic_prompt")
+    if topic_prompt:
+        prompt_ids = transcriber.processor.get_prompt_ids(topic_prompt)
+        # Fix: Ensure prompt_ids is a Tensor (not numpy) and on the correct device
+        if isinstance(prompt_ids, (np.ndarray, list)):
+            prompt_ids = torch.tensor(prompt_ids)
+        if isinstance(prompt_ids, torch.Tensor):
+            prompt_ids = prompt_ids.to(device)
 
     diarization_pipeline = None
     if hf_token:
@@ -189,7 +190,7 @@ def process_recipe(recipe_path, flac_dir, output_dir, config=None, hf_token=None
 
     updated = False
     for item in recipe:
-        if item.get('status') == 'pending':
+        if item.get('status') in ['pending', 'failed']:
             try:
                 csv_path = process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, language, prompt_ids)
                 if csv_path:
@@ -253,9 +254,46 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
         torch.mps.empty_cache()
     gc.collect()
 
-    # 2. Transcription
-    logger.info("   ✍️  Transcribing...")
-    transcript = transcriber.transcribe(temp_wav, language=language, prompt_ids=prompt_ids)
+    # 2. Transcription (VAD-filtered using Diarization segments)
+    logger.info("   ✍️  Transcribing (Speech Segments Only)...")
+    
+    # Get speech timeline from diarization (merges overlapping speech)
+    speech_timeline = diarization.get_timeline().support()
+    
+    # Merge short gaps (< 1.0s) to avoid chopping sentences
+    merged_segments = []
+    if len(speech_timeline) > 0:
+        sorted_segs = sorted(speech_timeline, key=lambda s: s.start)
+        current_seg = sorted_segs[0]
+        
+        for next_seg in sorted_segs[1:]:
+            if next_seg.start - current_seg.end < 1.0:
+                current_seg = Segment(current_seg.start, next_seg.end)
+            else:
+                merged_segments.append(current_seg)
+                current_seg = next_seg
+        merged_segments.append(current_seg)
+    
+    transcript_chunks = []
+    for seg in merged_segments:
+        # Read Audio Chunk (Memory Efficient)
+        start_frame = int(seg.start * 16000)
+        frames = int(seg.duration * 16000)
+        y_chunk, _ = sf.read(str(temp_wav), start=start_frame, frames=frames)
+        
+        # Transcribe Chunk
+        res = transcriber.transcribe(y_chunk, language=language, prompt_ids=prompt_ids)
+        
+        # Adjust timestamps to be absolute
+        if res and 'chunks' in res:
+            for chunk in res['chunks']:
+                start_rel, end_rel = chunk['timestamp']
+                # Handle missing timestamps (Whisper sometimes fails to predict end)
+                if start_rel is None: start_rel = 0.0
+                if end_rel is None: end_rel = seg.duration
+                
+                chunk['timestamp'] = (start_rel + seg.start, end_rel + seg.start)
+                transcript_chunks.append(chunk)
 
     # 3. Merge & Identify
     logger.info("   🔗 Merging text into paragraphs...")
@@ -267,7 +305,7 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
     # Hybrid Logic: If separation is good (>5dB) AND Left channel has exactly 1 speaker (Interviewer)
     is_hybrid = sep_db > 5.0 and spk_left == 1
 
-    for chunk in transcript['chunks']:
+    for chunk in transcript_chunks:
         start, end = chunk['timestamp']
         text = chunk['text']
         
@@ -340,10 +378,11 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
     return csv_name
 
 class Transcriber:
-    def __init__(self, device=None, model_id="openai/whisper-large-v3", cache_dir=None):
+    def __init__(self, device=None, model_id="openai/whisper-large-v3", cache_dir=None, config=None):
         """
         Initializes the Whisper model.
         """
+        self.config = config or {}
         self.device = device if device else get_device()
         
         # Mac MPS does not support float16 for all ops yet, so we use float32 for safety on Mac
@@ -371,23 +410,41 @@ class Transcriber:
             max_new_tokens=128,
             chunk_length_s=30,
             stride_length_s=(5, 5),
-            batch_size=2,
+            batch_size=self.config.get("batch_size", 1),
             return_timestamps=True,
             torch_dtype=self.torch_dtype,
             device=self.device,
         )
         logger.info("✅ Model Loaded.")
 
-    def transcribe(self, audio_path, language="da", prompt_ids=None):
-        logger.info(f"🎙️ Transcribing: {audio_path}")
-        generate_kwargs = {"language": language, "task": "transcribe"}
+    def transcribe(self, audio_input, language="da", prompt_ids=None):
+        # logger.info(f"🎙️ Transcribing segment...") # Reduced logging for segment loop
+        
+        # Use TextStreamer to show real-time transcription progress (Debug Info)
+        streamer = TextStreamer(self.processor.tokenizer, skip_prompt=True, decode_kwargs={"skip_special_tokens": True})
+        
+        generate_kwargs = {
+            "language": language, 
+            "task": "transcribe", 
+            "streamer": streamer, 
+            "num_beams": self.config.get("num_beams", 1),
+            "condition_on_prev_tokens": self.config.get("condition_on_prev_tokens", False),
+            "repetition_penalty": self.config.get("repetition_penalty", 1.1),
+            "no_speech_threshold": self.config.get("no_speech_threshold", 0.6)
+        }
         if prompt_ids is not None:
             generate_kwargs["prompt_ids"] = prompt_ids
             
-        result = self.pipe(str(audio_path), generate_kwargs=generate_kwargs)
+        # Handle both file path and numpy array
+        if isinstance(audio_input, (str, Path)):
+            inputs = str(audio_input)
+        else:
+            inputs = {"array": audio_input, "sampling_rate": 16000}
+            
+        result = self.pipe(inputs, generate_kwargs=generate_kwargs)
         return result
 
-def to_markdown(csv_path, output_dir):
+def to_markdown(csv_path, output_dir, speaker_map=None):
     """Converts a CSV transcript to Obsidian-ready Markdown."""
     csv_path = Path(csv_path)
     output_dir = Path(output_dir)
@@ -407,6 +464,10 @@ def to_markdown(csv_path, output_dir):
         start = row.get('Start', 0)
         speaker = row.get('Speaker', 'Unknown')
         text = row.get('Text', '')
+        
+        # Apply Speaker Map
+        if speaker_map and speaker in speaker_map:
+            speaker = speaker_map[speaker]
         
         # Format timestamp (MM:SS)
         time_str = f"{int(start//60):02d}:{int(start%60):02d}"
@@ -430,7 +491,7 @@ def to_markdown(csv_path, output_dir):
     logger.info(f"   📄 Created Markdown: {md_filename.name}")
     return md_filename
 
-def export_recipe(recipe_path, output_dir):
+def export_recipe(recipe_path, output_dir, config=None):
     """Exports all completed transcripts in the recipe to Markdown."""
     recipe_path = Path(recipe_path)
     output_dir = Path(output_dir)
@@ -445,12 +506,14 @@ def export_recipe(recipe_path, output_dir):
         
     logger.info(f"📂 Exporting to: {obsidian_dir}")
     
+    speaker_map = config.get('speaker_map', {}) if config else {}
+    
     count = 0
     for item in recipe:
         if item.get('status') == 'completed' and 'transcript_path' in item:
             csv_path = Path(item['transcript_path'])
             if csv_path.exists():
-                to_markdown(csv_path, obsidian_dir)
+                to_markdown(csv_path, obsidian_dir, speaker_map=speaker_map)
                 count += 1
     
     logger.info(f"✅ Exported {count} transcripts to Markdown.")
