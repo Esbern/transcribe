@@ -1,0 +1,70 @@
+project_name: "Legundary"
+
+# Hugging Face Token (Required for Pyannote/Diarization)
+# Leave empty if models are cached or you are logged in via CLI.
+hf_token: ""
+
+# Suppress technical warnings (DeprecationWarning, FutureWarning) to keep output clean
+suppress_warnings: true
+
+# Transcription Settings
+transcription:
+  # Language code for Whisper (e.g., "da" for Danish, "en" for English)
+  language: "da"
+  
+  # Initial prompt to guide the model style and vocabulary (list key terms here)
+  topic_prompt: "Dette er et interview om landbrug, landmandsliv, permakultur, høst, maskiner og drift."
+  
+  # Performance & Memory
+  # Number of audio chunks processed in parallel. Reduce to 1 if running out of memory (OOM).
+  batch_size: 1
+  
+  # Hallucination & Loop Control
+  # Beam size for search. 1 = Greedy Search (faster, less prone to loops). >1 = Beam Search (higher quality, slower).
+  num_beams: 1
+  
+  # If true, the model sees previous text. False prevents getting stuck in loops but reduces context.
+  condition_on_prev_tokens: false
+  
+  # Penalize repeated phrases. 1.0 = no penalty. Values > 1.0 (e.g. 1.1) reduce looping.
+  repetition_penalty: 1.1
+  
+  # Probability threshold (0.0-1.0) to skip segments that likely contain no speech.
+  no_speech_threshold: 0.6
+
+# Speaker Mapping (Rename speakers in final export)
+speaker_map:
+  SPEAKER_00: "Interviewer"
+  SPEAKER_01: "Participant"
+
+paths:
+  # Where are your raw audio files located?
+  org_audio_folder: "C:/Users/holmes/OneDrive - Roskilde Universitet/Isabella Bugge Nielsen's files - Lydfiler"
+  
+  # Where should the converted FLAC files go?
+  # IMPORTANT: Keep this OUTSIDE the project folder to avoid bloating your git repo.
+  flac_output_folder: "D:/legendary2/flac_cache"
+  
+  # Where should AI models be cached? (Prevents re-downloading)
+  models_folder: "../models"
+  
+  # Where should the transcripts and analysis go?
+  output_base_folder: "D:/legendary2/transcribe"
+
+# Wher shoud the obsidian files be stored
+  obsidian_vault_folder: "D:/legendary2/obsidian_vault"
+
+  #Subflolder for compact audio files  
+  compact_audio_folder: "compact_audio"
+
+
+patterns:
+
+  # Regex to extract an ID from the folder name (e.g., "Session_101" -> "101")
+  folder_id_regex: ".*nr\\s+(?P<id>\\d+).*"
+  
+  # Regex to identify ALL audio files (for auditing/checking)
+  all_audio_regex: ".*\\.(wav|mp3|m4a|flac)$"
+
+  # Regex to identify TARGET audio files to process (e.g. specific recorder suffix)
+  target_audio_regex: ".*Trlr\\.wav$"

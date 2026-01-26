@@ -50,7 +50,48 @@ pip install -U label-studio
 pip install -e .
 ```
 
-### 6. Run Label Studio
+### 6. Install Ollama (Optional - For Transcript Validation)
+To validate transcripts and detect hallucinations using local LLMs:
+
+**Install Ollama:**
+- **Windows/Linux:** Download from [ollama.ai](https://ollama.ai)
+- **Mac:** `brew install ollama`
+
+**Pull a Model:**
+
+Choose based on your needs:
+
+| Model | Size | Language Support | Best For |
+|-------|------|------------------|----------|
+| `llama2` | 7B | English + multilingual | General validation, fast |
+| `mistral` | 7B | English + multilingual | Better reasoning, medium speed |
+| `llama3` | 8B | English + multilingual | Most accurate, slower |
+| `jobautomation/OpenEuroLLM-Danish:latest` | 7B | **Danish-optimized** | **Danish interviews (recommended)** |
+
+**How to Choose:**
+- **For Danish interviews:** Use `jobautomation/OpenEuroLLM-Danish:latest` - specifically trained for Danish
+- **For multilingual projects:** Use `llama3` or `mistral`
+- **For speed:** Use `llama2` (faster but less accurate)
+- **Check available models:** `ollama list`
+
+**Installation:**
+```bash
+# For Danish interviews (recommended)
+ollama pull jobautomation/OpenEuroLLM-Danish:latest
+
+# OR for general use
+ollama pull llama2
+ollama pull mistral
+```
+
+**Start Ollama:**
+```bash
+ollama serve
+```
+
+Then configure the model name in notebook `04_Validate_Transcripts.ipynb`.
+
+### 7. Run Label Studio
 To launch Label Studio for annotation:
 ```bash
 label-studio
