@@ -1,3 +1,5 @@
+﻿# -*- coding: utf-8 -*-
+
 import os
 import logging
 import torch
@@ -371,18 +373,20 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
         start_frame = int(seg.start * 16000)
         frames = int(seg.duration * 16000)
         y_chunk, _ = sf.read(str(temp_wav), start=start_frame, frames=frames)
-        
+
         # Transcribe Chunk
         res = transcriber.transcribe(y_chunk, language=language, prompt_ids=prompt_ids)
-        
+
         # Adjust timestamps to be absolute
         if res and 'chunks' in res:
             for chunk in res['chunks']:
                 start_rel, end_rel = chunk['timestamp']
                 # Handle missing timestamps (Whisper sometimes fails to predict end)
-                if start_rel is None: start_rel = 0.0
-                if end_rel is None: end_rel = seg.duration
-                
+                if start_rel is None:
+                    start_rel = 0.0
+                if end_rel is None:
+                    end_rel = seg.duration
+
                 chunk['timestamp'] = (start_rel + seg.start, end_rel + seg.start)
                 transcript_chunks.append(chunk)
 
@@ -456,16 +460,24 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
     csv_name = output_dir / filename.replace('.flac', '.csv')
     df.to_csv(csv_name, index=False)
     logger.info(f"   🎉 Saved: {csv_name}")
-    
+
     # 🧹 DEEP CLEAN MEMORY
-    del diarization
-    del transcript
-    if temp_wav.exists(): temp_wav.unlink()
-    
+    # (Note: `diarization` is a local variable, safe to delete.)
+    try:
+        del diarization
+    except Exception:
+        pass
+    try:
+        del transcript_chunks
+    except Exception:
+        pass
+    if temp_wav.exists():
+        temp_wav.unlink()
+
     if torch.backends.mps.is_available():
         torch.mps.empty_cache()
     gc.collect()
-    
+
     return csv_name
 
 class Transcriber:
@@ -596,10 +608,15 @@ def export_recipe(recipe_path, output_dir, config=None):
     
     count = 0
     for item in recipe:
-        if item.get('status') == 'completed' and 'transcript_path' in item:
+        # Prefer explicit transcript_path if present; otherwise infer from output_name.
+        csv_path = None
+        if 'transcript_path' in item:
             csv_path = Path(item['transcript_path'])
-            if csv_path.exists():
-                to_markdown(csv_path, obsidian_dir, speaker_map=speaker_map)
-                count += 1
+        elif 'output_name' in item and str(item['output_name']).lower().endswith('.flac'):
+            csv_path = output_dir / str(item['output_name']).replace('.flac', '.csv')
+
+        if csv_path and csv_path.exists():
+            to_markdown(csv_path, obsidian_dir, speaker_map=speaker_map)
+            count += 1
     
     logger.info(f"✅ Exported {count} transcripts to Markdown.")

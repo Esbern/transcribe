@@ -1,3 +1,4 @@
+﻿# -*- coding: utf-8 -*-
 """
 QualiVault Transcript Validation Module
 
@@ -25,16 +26,18 @@ class OllamaValidator:
     - Language inconsistencies
     """
     
-    def __init__(self, model="llama2", ollama_url="http://localhost:11434"):
+    def __init__(self, model="llama2", ollama_url="http://localhost:11434", timeout=60):
         """
         Initialize the validator.
         
         Args:
             model: Ollama model name (e.g., "llama2", "mistral", "llama3")
             ollama_url: URL where Ollama is running
+            timeout: Request timeout in seconds (default 60, increase for large models)
         """
         self.model = model
         self.ollama_url = ollama_url
+        self.timeout = timeout
         self.api_endpoint = f"{ollama_url}/api/generate"
         
         # Test connection
@@ -80,7 +83,7 @@ class OllamaValidator:
             response = requests.post(
                 self.api_endpoint,
                 json=payload,
-                timeout=60
+                timeout=self.timeout
             )
             
             if response.status_code == 200:

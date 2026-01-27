@@ -9,6 +9,17 @@ suppress_warnings: true
 
 # Transcription Settings
 transcription:
+  # Transcription backend:
+  # - auto: uses WhisperX on CUDA, otherwise transformers whisper
+  # - whisperx: fastest on NVIDIA CUDA (requires pip install whisperx)
+  # - faster_whisper: good CPU fallback (requires pip install faster-whisper)
+  # - transformers: built-in default (works on CPU/MPS/CUDA)
+  backend: "auto"
+
+  # Model id (used by transformers and whisperx backends)
+  # Examples: "openai/whisper-large-v3", "large-v3"
+  model_id: "openai/whisper-large-v3"
+
   # Language code for Whisper (e.g., "da" for Danish, "en" for English)
   language: "da"
   

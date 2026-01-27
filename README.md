@@ -16,33 +16,44 @@ cd qualivault
 ```
 
 ### 3. Create the Environment
-**For Mac (Apple Silicon):**
+Pick the environment that matches your hardware and transcription backend preference.
+
+**Option A: Mac (Apple Silicon, MPS) — Transformers Whisper (default):**
 ```bash
 micromamba create -f environment_mac.yml
 micromamba activate qualivault
 ```
 
-**For Windows/Linux (NVIDIA CUDA):**
+**Option B: Windows/Linux (NVIDIA CUDA) — Transformers Whisper (default):**
 ```bash
 micromamba create -f environment_cuda.yml
 micromamba activate qualivault
 ```
 
-### 4. Install PyTorch and Dependencies
-Due to compatibility issues, PyTorch and WhisperX must be installed separately using pip.
-
-**For Mac:**
+**Option C: Windows/Linux (NVIDIA CUDA) — WhisperX (fastest):**
 ```bash
-pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1
+micromamba create -f environment_cuda.yml
+micromamba activate qualivault
 pip install whisperx
+```
+
+**Option D: CPU-only (any OS) — faster-whisper (lightweight):**
+```bash
+micromamba create -f environment_cpu.yml
+micromamba activate qualivault
+```
+
+### 4. Install PyTorch and Dependencies
+PyTorch is installed via the environment files. WhisperX is optional and installed with pip.
+
+**Optional (any platform):**
+```bash
 pip install -U label-studio
 ```
 
-**For Windows/Linux (CUDA):**
+**Optional (CUDA WhisperX):**
 ```bash
-pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124
 pip install whisperx
-pip install -U label-studio
 ```
 
 ### 5. Install the Package
@@ -121,6 +132,9 @@ Open `projects/my_interview_study/config.yml`.
 **Key Settings:**
 *   **`hf_token`**: Your Hugging Face token (required for Pyannote diarization).
 *   **`transcription`**:
+    *   `backend`: `auto` (recommended), `whisperx` (CUDA), or `transformers`.
+    *   CPU-only fallback: `faster_whisper`
+    *   `model_id`: Whisper model identifier.
     *   `language`: Target language (e.g., "da").
     *   `topic_prompt`: Keywords to guide the AI (jargon, names).
     *   `batch_size`: Reduce to `1` if you run out of memory.

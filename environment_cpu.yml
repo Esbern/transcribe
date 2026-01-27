@@ -1,0 +1,23 @@
+name: qualivault
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - ffmpeg
+  - git
+  - pandas
+  - jupyterlab
+  - ipywidgets
+  - "numpy<2.0"
+  - pip
+  - pip:
+      - torch==2.5.1
+      - torchaudio==2.5.1
+      - faster-whisper
+      - ctranslate2
+      - transformers
+      - accelerate
+      - peft
+      - "pyannote.audio>=3.1.1"
+      - soundfile
+      - librosa
