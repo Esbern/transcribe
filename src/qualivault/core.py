@@ -9,6 +9,7 @@ import re
 import subprocess
 from pathlib import Path
 import warnings
+from typing import Optional
 from huggingface_hub import login
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 from pyannote.audio import Pipeline
@@ -31,6 +32,34 @@ logging.basicConfig(
     datefmt='%H:%M:%S'
 )
 logger = logging.getLogger("QualiVault")
+
+
+def _safe_float(value, default):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _safe_int(value) -> Optional[int]:
+    try:
+        if value is None:
+            return None
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _safe_bool(value, default=False):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        v = value.strip().lower()
+        if v in {"1", "true", "yes", "on"}:
+            return True
+        if v in {"0", "false", "no", "off"}:
+            return False
+    return default
 
 def setup_environment():
     """
@@ -321,26 +350,99 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
         y_mono = librosa.to_mono(y)
     else:
         y_mono = y
-        
-    temp_wav = output_dir / "temp_process.wav"
-    sf.write(temp_wav, y_mono, sr)
-    
-    # Free memory before heavy lifting
-    del y, y_mono
+
+    # Keep original stereo/mono array out of memory as soon as mono is prepared.
+    del y
     gc.collect()
 
     # Read metadata from recipe
     spk_left = int(item.get('speakers_left', 0))
     spk_right = int(item.get('speakers_right', 0))
     sep_db = float(item.get('separation_db', 0))
+    transcription_config = getattr(transcriber, "config", {}) or {}
+    diarization_config = transcription_config.get("diarization", {})
+    segment_config = transcription_config.get("segmentation", {})
+    preprocessing_config = transcription_config.get("preprocessing", {})
+    stereo_config = transcription_config.get("stereo_hint", {})
+    adaptive_config = transcription_config.get("adaptive_tuning", {})
+
+    declared_speakers = _safe_int(item.get("speakers"))
+    separation_status = str(item.get("separation_status", "")).strip().lower()
+
+    merge_gap_seconds = max(0.0, _safe_float(segment_config.get("merge_gap_seconds"), 1.0))
+    final_merge_gap_seconds = max(0.0, _safe_float(segment_config.get("final_merge_gap_seconds"), 0.75))
+    max_segment_duration_seconds = max(1.0, _safe_float(segment_config.get("max_segment_duration_seconds"), 45.0))
+
+    min_speakers = max(1, _safe_int(diarization_config.get("min_speakers")) or 2)
+    configured_max_speakers = _safe_int(diarization_config.get("max_speakers"))
+    speakers_policy = str(diarization_config.get("speakers_policy", "strict")).strip().lower()
+
+    # Optional preprocessing before diarization/transcription.
+    trim_silence = _safe_bool(preprocessing_config.get("trim_silence", True), True)
+    trim_top_db = max(10.0, _safe_float(preprocessing_config.get("trim_silence_top_db"), 30.0))
+    normalize_audio = _safe_bool(preprocessing_config.get("normalize_audio", True), True)
+    normalize_target_peak = max(0.01, _safe_float(preprocessing_config.get("normalize_target_peak"), 0.95))
+    denoise_strength = max(0.0, min(1.0, _safe_float(preprocessing_config.get("denoise_strength"), 0.0)))
+
+    if trim_silence:
+        try:
+            y_mono, _ = librosa.effects.trim(y_mono, top_db=trim_top_db)
+        except Exception:
+            pass
+
+    if denoise_strength > 0.0:
+        try:
+            import noisereduce as nr
+            y_mono = nr.reduce_noise(y=y_mono, sr=sr, prop_decrease=denoise_strength, stationary=True)
+        except Exception as e:
+            logger.warning(f"   ⚠️ Preprocessing denoise skipped: {e}")
+
+    if normalize_audio and len(y_mono) > 0:
+        peak = float(np.max(np.abs(y_mono)))
+        if peak > 0:
+            y_mono = np.clip(y_mono * (normalize_target_peak / peak), -1.0, 1.0)
+
+    if len(y_mono) == 0:
+        logger.warning("   ⚠️ Preprocessing produced empty audio; falling back to untrimmed waveform.")
+        y_mono, _ = librosa.load(audio_path, sr=16000, mono=True)
+
+    # Adaptive tuning for low-quality files.
+    adaptive_enabled = _safe_bool(adaptive_config.get("enabled", True), True)
+    if adaptive_enabled and separation_status == "poor":
+        merge_gap_seconds = min(merge_gap_seconds, max(0.0, _safe_float(adaptive_config.get("poor_audio_merge_gap_seconds"), 0.25)))
+        final_merge_gap_seconds = min(final_merge_gap_seconds, max(0.0, _safe_float(adaptive_config.get("poor_audio_final_merge_gap_seconds"), 0.25)))
+        max_segment_duration_seconds = min(max_segment_duration_seconds, max(1.0, _safe_float(adaptive_config.get("poor_audio_max_segment_duration_seconds"), 15.0)))
+
+    temp_wav = output_dir / "temp_process.wav"
+    sf.write(temp_wav, y_mono, sr)
+
+    del y_mono
+    gc.collect()
 
     # 1. Diarization
     logger.info("   🧠 Running Diarization...")
-    # Allow more speakers if the recipe suggests it (default to 2 min, loose max)
-    min_spk = 2
-    max_spk = max(2, spk_left + spk_right) if (spk_left + spk_right) > 0 else None
-    
-    diarization = diarization_pipeline(str(temp_wav), min_speakers=min_spk, max_speakers=max_spk)
+    # Use per-interview speaker count when available.
+    min_spk = min_speakers
+    inferred_max_speakers = max(min_spk, spk_left + spk_right) if (spk_left + spk_right) > 0 else None
+    if configured_max_speakers is not None:
+        max_spk = max(min_spk, configured_max_speakers)
+    else:
+        max_spk = inferred_max_speakers
+
+    diarization_kwargs = {}
+    if declared_speakers and declared_speakers > 0 and speakers_policy == "strict":
+        diarization_kwargs["num_speakers"] = declared_speakers
+    elif declared_speakers and declared_speakers > 0 and speakers_policy == "bounded":
+        diarization_kwargs["min_speakers"] = max(1, declared_speakers)
+        diarization_kwargs["max_speakers"] = max(declared_speakers, declared_speakers + 1)
+    else:
+        if adaptive_enabled and separation_status == "poor" and max_spk is not None:
+            max_spk = min(max_spk, min_spk + 1)
+        diarization_kwargs["min_speakers"] = min_spk
+        if max_spk is not None:
+            diarization_kwargs["max_speakers"] = max_spk
+
+    diarization = diarization_pipeline(str(temp_wav), **diarization_kwargs)
     
     # Memory cleanup after Diarization to prepare for Whisper
     if torch.backends.mps.is_available():
@@ -353,14 +455,14 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
     # Get speech timeline from diarization (merges overlapping speech)
     speech_timeline = diarization.get_timeline().support()
     
-    # Merge short gaps (< 1.0s) to avoid chopping sentences
+    # Merge short silence gaps before chunking for Whisper.
     merged_segments = []
     if len(speech_timeline) > 0:
         sorted_segs = sorted(speech_timeline, key=lambda s: s.start)
         current_seg = sorted_segs[0]
         
         for next_seg in sorted_segs[1:]:
-            if next_seg.start - current_seg.end < 1.0:
+            if next_seg.start - current_seg.end < merge_gap_seconds:
                 current_seg = Segment(current_seg.start, next_seg.end)
             else:
                 merged_segments.append(current_seg)
@@ -390,12 +492,47 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
                 chunk['timestamp'] = (start_rel + seg.start, end_rel + seg.start)
                 transcript_chunks.append(chunk)
 
+    # Build optional channel->speaker hints from diarization turns.
+    stereo_hint_enabled = _safe_bool(stereo_config.get("enabled", True), True)
+    stereo_dom_db = max(0.5, _safe_float(stereo_config.get("dominance_db_threshold"), 3.0))
+    stereo_overlap_threshold = max(0.0, _safe_float(stereo_config.get("low_overlap_seconds"), 0.15))
+    channel_speaker_counts = {"left": {}, "right": {}}
+
+    if stereo_hint_enabled:
+        try:
+            info = sf.info(str(audio_path))
+            is_stereo = int(info.channels) >= 2
+        except Exception:
+            is_stereo = False
+
+        if is_stereo:
+            for turn, _, speaker in diarization.itertracks(yield_label=True):
+                start_frame = int(turn.start * 16000)
+                frames_to_read = max(1, int((turn.end - turn.start) * 16000))
+                try:
+                    y_turn, _ = sf.read(str(audio_path), start=start_frame, frames=frames_to_read)
+                except Exception:
+                    continue
+                if y_turn.ndim < 2:
+                    continue
+                rms_l = np.sqrt(np.mean(np.square(y_turn[:, 0]))) + 1e-8
+                rms_r = np.sqrt(np.mean(np.square(y_turn[:, 1]))) + 1e-8
+                db = 20.0 * np.log10(rms_l / rms_r)
+                if db >= stereo_dom_db:
+                    channel_speaker_counts["left"][speaker] = channel_speaker_counts["left"].get(speaker, 0) + 1
+                elif db <= -stereo_dom_db:
+                    channel_speaker_counts["right"][speaker] = channel_speaker_counts["right"].get(speaker, 0) + 1
+
+    dominant_left_speaker = max(channel_speaker_counts["left"], key=channel_speaker_counts["left"].get) if channel_speaker_counts["left"] else None
+    dominant_right_speaker = max(channel_speaker_counts["right"], key=channel_speaker_counts["right"].get) if channel_speaker_counts["right"] else None
+
     # 3. Merge & Identify
     logger.info("   🔗 Merging text into paragraphs...")
     final_segments = []
     current_speaker = None
     current_text_buffer = []
     current_start = 0.0
+    current_end = 0.0
     
     # Hybrid Logic: If separation is good (>5dB) AND Left channel has exactly 1 speaker (Interviewer)
     is_hybrid = sep_db > 5.0 and spk_left == 1
@@ -431,27 +568,54 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
                         best_speaker = "LEFT (Student)"
             except Exception as e:
                 pass # Fallback to AI speaker ID if read fails
+
+        # Stereo-aware fallback: if diarization overlap is weak, use channel-dominance priors.
+        if stereo_hint_enabled and max_overlap <= stereo_overlap_threshold:
+            try:
+                start_frame = int(start * 16000)
+                frames_to_read = max(1, int((end - start) * 16000))
+                y_chunk_stereo, _ = sf.read(str(audio_path), start=start_frame, frames=frames_to_read)
+                if y_chunk_stereo.ndim > 1:
+                    rms_l = np.sqrt(np.mean(np.square(y_chunk_stereo[:, 0]))) + 1e-8
+                    rms_r = np.sqrt(np.mean(np.square(y_chunk_stereo[:, 1]))) + 1e-8
+                    db = 20.0 * np.log10(rms_l / rms_r)
+                    if db >= stereo_dom_db and dominant_left_speaker:
+                        best_speaker = dominant_left_speaker
+                    elif db <= -stereo_dom_db and dominant_right_speaker:
+                        best_speaker = dominant_right_speaker
+            except Exception:
+                pass
         
+        gap_from_previous_chunk = max(0.0, start - current_end) if current_speaker is not None else 0.0
+        projected_duration = end - current_start if current_speaker is not None else 0.0
+        should_merge = (
+            best_speaker == current_speaker
+            and gap_from_previous_chunk <= final_merge_gap_seconds
+            and projected_duration <= max_segment_duration_seconds
+        )
+
         # Merge Logic
-        if best_speaker == current_speaker:
+        if should_merge:
             current_text_buffer.append(text)
+            current_end = end
         else:
             if current_speaker is not None:
                 final_segments.append({
                     "Start": round(current_start, 2),
-                    "End": round(start, 2),
+                    "End": round(current_end, 2),
                     "Speaker": current_speaker,
                     "Text": " ".join(current_text_buffer)
                 })
             current_speaker = best_speaker
             current_text_buffer = [text]
             current_start = start
+            current_end = end
 
     # Append final segment
     if current_speaker is not None:
         final_segments.append({
             "Start": round(current_start, 2),
-            "End": round(end, 2),
+            "End": round(current_end, 2),
             "Speaker": current_speaker,
             "Text": " ".join(current_text_buffer)
         })

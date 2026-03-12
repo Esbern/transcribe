@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import time
 import traceback
 from dataclasses import dataclass
 from datetime import datetime
@@ -55,7 +57,25 @@ class RunState:
         tmp = self.state_path.with_suffix(self.state_path.suffix + ".tmp")
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(self.data, f, indent=2, ensure_ascii=False)
-        tmp.replace(self.state_path)
+
+        # On Windows, AV/indexers can briefly lock either file and make atomic replace fail.
+        last_err: Optional[BaseException] = None
+        for _ in range(5):
+            try:
+                os.replace(tmp, self.state_path)
+                return
+            except PermissionError as e:
+                last_err = e
+                time.sleep(0.05)
+
+        # Fallback: write directly to destination if replace keeps failing.
+        with open(self.state_path, "w", encoding="utf-8") as f:
+            json.dump(self.data, f, indent=2, ensure_ascii=False)
+        try:
+            if tmp.exists():
+                tmp.unlink()
+        except Exception:
+            pass
 
     def _ensure_interview(self, interview_key: str) -> Dict[str, Any]:
         interviews = self.data.setdefault("interviews", {})

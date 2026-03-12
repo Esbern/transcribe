@@ -139,6 +139,14 @@ Open `projects/my_interview_study/config.yml`.
     *   `topic_prompt`: Keywords to guide the AI (jargon, names).
     *   `batch_size`: Reduce to `1` if you run out of memory.
     *   `repetition_penalty`: Increase (e.g., `1.1`) if the model loops.
+    *   `diarization.speakers_policy`: `strict` uses per-interview `speakers` exactly; best when interviewer notes are reliable.
+    *   `diarization.max_speakers`: Set to `2` for typical interviewer/participant recordings to reduce speaker fragmentation.
+    *   `segmentation.merge_gap_seconds`: Lower this to create smaller speech regions before transcription.
+    *   `segmentation.final_merge_gap_seconds`: Lower this to stop same-speaker chunks from merging across pauses.
+    *   `segmentation.max_segment_duration_seconds`: Cap paragraph size when audio quality is poor.
+    *   `preprocessing`: Optional trim/normalize/denoise before diarization.
+    *   `stereo_hint`: Uses left/right dominance as fallback when diarization overlap is weak.
+    *   `adaptive_tuning`: Auto-tightens merge/duration thresholds for poor-separation files.
 *   **`speaker_map`**: Rename "SPEAKER_00" to "Interviewer" automatically.
 *   **`paths`**: Set `org_audio_folder` to where your raw audio lives.
 

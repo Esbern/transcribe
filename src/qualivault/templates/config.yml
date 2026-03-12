@@ -43,6 +43,42 @@ transcription:
   # Probability threshold (0.0-1.0) to skip segments that likely contain no speech.
   no_speech_threshold: 0.6
 
+  # Diarization controls. Lower max_speakers can stabilize rough two-person interviews.
+  diarization:
+    min_speakers: 2
+    max_speakers:
+    # strict: use recipe 'speakers' exactly when present
+    # bounded: use recipe 'speakers' as min and allow +1
+    speakers_policy: "strict"
+
+  # Segment controls for the built-in transformers pipeline.
+  # Lower merge_gap_seconds and max_segment_duration_seconds to get smaller transcript blocks.
+  segmentation:
+    merge_gap_seconds: 1.0
+    final_merge_gap_seconds: 0.75
+    max_segment_duration_seconds: 45
+
+  # Audio preprocessing before diarization/transcription.
+  preprocessing:
+    trim_silence: true
+    trim_silence_top_db: 30
+    normalize_audio: true
+    normalize_target_peak: 0.95
+    denoise_strength: 0.0
+
+  # Stereo-aware hinting for low-overlap chunks.
+  stereo_hint:
+    enabled: true
+    dominance_db_threshold: 3.0
+    low_overlap_seconds: 0.15
+
+  # Per-file auto tuning for poor separation recordings.
+  adaptive_tuning:
+    enabled: true
+    poor_audio_merge_gap_seconds: 0.25
+    poor_audio_final_merge_gap_seconds: 0.25
+    poor_audio_max_segment_duration_seconds: 15
+
 # Speaker Mapping (Rename speakers in final export)
 speaker_map:
   SPEAKER_00: "Interviewer"
