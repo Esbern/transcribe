@@ -98,6 +98,10 @@ paths:
   # Where should the transcripts and analysis go?
   output_base_folder: "./output"
 
+# Domain-specific transcript corrections applied during cleaning/export.
+# Format: wrong_form: correct_form
+text_corrections: {}
+
 patterns:
   # Regex to extract an ID from the folder name (e.g., "Session_101" -> "101")
   folder_id_regex: ".*(?P<id>\\d+).*"
