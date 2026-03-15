@@ -10,11 +10,21 @@ from typing import Any, Dict, List, Optional
 import torch
 
 from qualivault.audio import analyze_channel_separation, prepare_audio
-from qualivault.core import Transcriber, get_device, process_item
+from qualivault.core import Transcriber, _flush_gpu_memory, get_device, process_item
 from qualivault.recipe import expected_csv_name, expected_flac_name, interview_key, load_recipe, save_recipe
 from qualivault.state import RunState
 
 logger = logging.getLogger("QualiVault")
+
+
+def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+    merged = dict(base or {})
+    for k, v in (override or {}).items():
+        if isinstance(v, dict) and isinstance(merged.get(k), dict):
+            merged[k] = _deep_merge(merged[k], v)
+        else:
+            merged[k] = v
+    return merged
 
 
 def _init_pyannote_pipeline(hf_token: Optional[str], device: str, cache_dir: Optional[Path] = None):
@@ -283,6 +293,7 @@ def transcribe_recipe(
     state = RunState(RunState.default_path(project_root)).load()
 
     transcription_cfg = (config or {}).get("transcription", {})
+    interview_overrides_cfg = transcription_cfg.get("interview_overrides", {})
     backend = transcription_cfg.get("backend", "auto")
     model_id = transcription_cfg.get("model_id", "openai/whisper-large-v3")
     language = transcription_cfg.get("language", "da")
@@ -354,6 +365,31 @@ def transcribe_recipe(
                 item_local = dict(item)
                 item_local["output_name"] = flac_name
 
+                key_options = [
+                    str(key),
+                    str(flac_path.stem),
+                    str(item.get("id", "")),
+                    f"Interview_{item.get('id')}" if item.get("id") is not None else "",
+                ]
+                item_override: Dict[str, Any] = {}
+                for kopt in key_options:
+                    if not kopt:
+                        continue
+                    if isinstance(interview_overrides_cfg, dict) and kopt in interview_overrides_cfg:
+                        item_override = interview_overrides_cfg.get(kopt) or {}
+                        break
+
+                effective_cfg = _deep_merge(transcription_cfg, item_override)
+                transcriber.config = effective_cfg
+
+                prompt_ids = None
+                topic_prompt = effective_cfg.get("topic_prompt")
+                if topic_prompt:
+                    prompt_ids = transcriber.processor.get_prompt_ids(topic_prompt)
+                    if not isinstance(prompt_ids, torch.Tensor):
+                        prompt_ids = torch.tensor(prompt_ids)
+                    prompt_ids = prompt_ids.to(device)
+
                 out_csv = process_item(
                     item_local,
                     flac_dir=flac_dir,
@@ -361,7 +397,7 @@ def transcribe_recipe(
                     transcriber=transcriber,
                     diarization_pipeline=diarization_pipe,
                     language=language,
-                    prompt_ids=None,
+                    prompt_ids=prompt_ids,
                 )
 
             if not out_csv:
@@ -374,7 +410,9 @@ def transcribe_recipe(
             failed += 1
             state.mark_step_failed(key, "transcribe", e, flac=str(flac_path), csv=str(csv_path), backend=backend)
             logger.error(f"❌ Transcribe failed for {key}: {e}")
-            continue
+        finally:
+            # Release GPU memory between interviews regardless of success/failure.
+            _flush_gpu_memory()
 
     logger.info("=" * 70)
     logger.info(f"✅ Transcription complete. Done: {done}, Skipped: {skipped}, Failed: {failed}")

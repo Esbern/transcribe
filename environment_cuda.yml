@@ -24,7 +24,7 @@ dependencies:
       - transformers
       - accelerate
       - peft
-      - "pyannote.audio>=3.1.1"
+      - "pyannote.audio>=4.4.0"
       - silero-vad
       - noisereduce
       - soundfile

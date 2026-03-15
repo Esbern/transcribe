@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
+import yaml
 
 
 def format_ts(seconds: float) -> str:
@@ -148,6 +149,174 @@ def debug_audio_matching(
         print()
 
 
+def _read_csv_with_encoding_fallback(path: Path, **kwargs: Any) -> pd.DataFrame:
+    encodings = ["utf-8", "utf-8-sig", "cp1252", "latin1"]
+    last_err: Optional[Exception] = None
+    for enc in encodings:
+        try:
+            return pd.read_csv(path, encoding=enc, **kwargs)
+        except UnicodeDecodeError as e:
+            last_err = e
+            continue
+    if last_err is not None:
+        raise last_err
+    return pd.read_csv(path, **kwargs)
+
+
+def _extract_numeric_id(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    s = str(value).strip()
+    if not s:
+        return None
+    m = re.search(r"\d+", s)
+    if not m:
+        return None
+    return str(int(m.group(0)))
+
+
+def _load_recipe_speakers_map(processing_recipe_path: Optional[Path]) -> Dict[str, str]:
+    if not processing_recipe_path:
+        return {}
+
+    path = Path(processing_recipe_path)
+    if not path.exists():
+        return {}
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            recipe = yaml.safe_load(f)
+    except Exception:
+        return {}
+
+    if not isinstance(recipe, list):
+        return {}
+
+    out: Dict[str, str] = {}
+    for item in recipe:
+        if not isinstance(item, dict):
+            continue
+        rid = _extract_numeric_id(item.get("id"))
+        if rid is None:
+            continue
+        speakers = item.get("speakers")
+        if speakers is None:
+            continue
+        out[rid] = str(speakers)
+    return out
+
+
+def _load_questionnaire_structure(
+    questionnaire_csv_path: Optional[Path],
+) -> Optional[Dict[str, Any]]:
+    if not questionnaire_csv_path:
+        return None
+
+    path = Path(questionnaire_csv_path)
+    if not path.exists():
+        return None
+
+    try:
+        df = _read_csv_with_encoding_fallback(
+            path,
+            header=None,
+            dtype=str,
+            keep_default_na=False,
+            engine="python",
+        )
+    except Exception:
+        return None
+
+    if df.empty:
+        return None
+
+    lb_row_idx: Optional[int] = None
+    for idx in range(len(df)):
+        first_col = str(df.iat[idx, 0]).strip().casefold() if df.shape[1] > 0 else ""
+        if first_col in {"lb_id", "lb id"}:
+            lb_row_idx = idx
+            break
+
+    id_to_col: Dict[str, int] = {}
+    if lb_row_idx is not None:
+        for col in range(2, df.shape[1]):
+            interview_id = _extract_numeric_id(df.iat[lb_row_idx, col])
+            if interview_id:
+                id_to_col[interview_id] = col
+
+    sections: List[Tuple[str, List[str]]] = []
+    current_section = "Questionnaire"
+    current_questions: List[str] = []
+    response_type_by_key: Dict[str, str] = {}
+    row_index_by_key: Dict[str, int] = {}
+
+    for idx in range(len(df)):
+        key = str(df.iat[idx, 0]).strip() if df.shape[1] > 0 else ""
+        resp = str(df.iat[idx, 1]).strip() if df.shape[1] > 1 else ""
+
+        if not key:
+            continue
+        if key.casefold() in {"variable", "lb_id", "lb id"}:
+            continue
+
+        if key.startswith("Section "):
+            if current_questions:
+                sections.append((current_section, current_questions))
+            current_section = key
+            current_questions = []
+            continue
+
+        # Keep questionnaire rows that look like question variables (Q...) or free rows.
+        current_questions.append(key)
+        response_type_by_key[key] = resp
+        row_index_by_key[key] = idx
+
+    if current_questions:
+        sections.append((current_section, current_questions))
+
+    return {
+        "dataframe": df,
+        "id_to_col": id_to_col,
+        "sections": sections,
+        "response_type_by_key": response_type_by_key,
+        "row_index_by_key": row_index_by_key,
+    }
+
+
+def _get_prefilled_answer(
+    questionnaire: Optional[Dict[str, Any]],
+    question_key: str,
+    interview_id: Optional[str],
+) -> str:
+    if not questionnaire or interview_id is None:
+        return ""
+
+    row_index_by_key: Dict[str, int] = questionnaire.get("row_index_by_key", {})
+    id_to_col: Dict[str, int] = questionnaire.get("id_to_col", {})
+    df: pd.DataFrame = questionnaire.get("dataframe")
+
+    row_idx = row_index_by_key.get(question_key)
+    col_idx = id_to_col.get(interview_id)
+    if row_idx is None or col_idx is None:
+        return ""
+
+    try:
+        value = str(df.iat[row_idx, col_idx]).strip()
+        return "" if value.lower() == "nan" else value
+    except Exception:
+        return ""
+
+
+def _has_prefill_column_for_interview(
+    questionnaire: Optional[Dict[str, Any]],
+    interview_id: Optional[str],
+) -> bool:
+    if not questionnaire or interview_id is None:
+        return False
+    id_to_col: Dict[str, int] = questionnaire.get("id_to_col", {})
+    return interview_id in id_to_col
+
+
 def export_transcripts_to_obsidian(
     *,
     transcripts_dir: Path,
@@ -155,7 +324,9 @@ def export_transcripts_to_obsidian(
     obsidian_vault: Path,
     compact_audio_subfolder: str,
     target_speaker: str,
-    question_sections: Dict[str, List[str]],
+    question_sections: Optional[Dict[str, List[str]]] = None,
+    questionnaire_csv_path: Optional[Path] = None,
+    processing_recipe_path: Optional[Path] = None,
     validation_reports_dir: Optional[Path] = None,
     legacy_validation_report_path: Optional[Path] = None,
     force: bool = False,
@@ -179,6 +350,9 @@ def export_transcripts_to_obsidian(
         legacy_validation_report_path=legacy_validation_report_path,
     )
 
+    questionnaire = _load_questionnaire_structure(questionnaire_csv_path)
+    speakers_by_interview_id = _load_recipe_speakers_map(processing_recipe_path)
+
     csv_files = sorted(transcripts_dir.glob("*.csv"))
     print(f"\n📝 EXPORTING {len(csv_files)} TRANSCRIPTS\n")
 
@@ -188,6 +362,7 @@ def export_transcripts_to_obsidian(
     for csv_path in csv_files:
         base = csv_path.stem
         title = base.replace("_", " ").title()
+        interview_id = _extract_numeric_id(base)
         out_path = output_dir / f"{base}.md"
 
         if out_path.exists() and not force:
@@ -199,6 +374,8 @@ def export_transcripts_to_obsidian(
 
         audio_name = find_audio_file(base, audio_vault_dir)
         audio_rel_path = f"{compact_audio_subfolder}/{audio_name}" if audio_name else None
+        # Keep timestamp links clickable even when matching fails by using a stable fallback filename.
+        audio_rel_path_for_links = audio_rel_path or f"{compact_audio_subfolder}/{base}.mp3"
 
         validation_data = (
             validation_index.get(csv_path.name)
@@ -220,6 +397,8 @@ def export_transcripts_to_obsidian(
         lines: List[str] = []
         lines.append("---")
         lines.append(f'title: "{title}"')
+        if interview_id is not None:
+            lines.append(f"LB_id: {interview_id}")
         lines.append(f"date: {datetime.date.today().isoformat()}")
         lines.append("tags: [interview]")
         lines.append("---\n")
@@ -238,10 +417,7 @@ def export_transcripts_to_obsidian(
             ts_label = format_ts(start)
             ts_int = int(round(start))
 
-            if audio_rel_path:
-                ts_link = f"[[{audio_rel_path}#t={ts_int}|{ts_label}]]"
-            else:
-                ts_link = f"`[{ts_label}]`"
+            ts_link = f"[{ts_label}]({audio_rel_path_for_links}#t={ts_int})"
 
             heading = (
                 f"### **{speaker}** {ts_link}"
@@ -288,14 +464,45 @@ def export_transcripts_to_obsidian(
         lines.append("---")
         lines.append("# 📊 Interview Data")
         lines.append("> [!INFO]- Questionnaire")
-        lines.append("> Click to expand and fill in answers.")
+        lines.append("> Click to expand. Prefilled values are loaded when available; blank fields are expected for interviews completed directly in Obsidian.")
         lines.append(">")
 
-        for section, questions in question_sections.items():
-            lines.append(f"> %% {section} %%")
-            for q in questions:
-                lines.append(f"> **{q}**:: ")
-            lines.append(">")
+        if interview_id is not None:
+            lines.append(f"> **LB_id**:: {interview_id}")
+        else:
+            lines.append("> **LB_id**:: ")
+        lines.append(">")
+
+        if questionnaire and questionnaire.get("sections"):
+            response_type_by_key: Dict[str, str] = questionnaire.get("response_type_by_key", {})
+            sections: List[Tuple[str, List[str]]] = questionnaire.get("sections", [])
+            has_prefill_column = _has_prefill_column_for_interview(questionnaire, interview_id)
+
+            if interview_id is not None and not has_prefill_column:
+                lines.append("> _No prefilled questionnaire column found for this LB_id in Questionnaire.csv. This is expected when the interview is completed directly in Obsidian._")
+                lines.append(">")
+
+            for section, questions in sections:
+                lines.append(f"> %% {section} %%")
+                for q in questions:
+                    response_type = response_type_by_key.get(q, "")
+                    prefilled = _get_prefilled_answer(questionnaire, q, interview_id)
+
+                    if q.strip() == "Q1_2_number_of_participants" and interview_id is not None:
+                        prefilled = speakers_by_interview_id.get(interview_id, prefilled)
+
+                    helper = f" ({response_type})" if response_type else ""
+                    lines.append(f"> **{q}**{helper}:: {prefilled}")
+                lines.append(">")
+        else:
+            for section, questions in (question_sections or {}).items():
+                lines.append(f"> %% {section} %%")
+                for q in questions:
+                    prefilled = ""
+                    if q.strip() == "Q1_2_number_of_participants" and interview_id is not None:
+                        prefilled = speakers_by_interview_id.get(interview_id, "")
+                    lines.append(f"> **{q}**:: {prefilled}")
+                lines.append(">")
 
         out_path.write_text("\n".join(lines), encoding="utf-8")
 
