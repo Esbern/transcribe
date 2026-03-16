@@ -353,8 +353,15 @@ def export_transcripts_to_obsidian(
     questionnaire = _load_questionnaire_structure(questionnaire_csv_path)
     speakers_by_interview_id = _load_recipe_speakers_map(processing_recipe_path)
 
-    csv_files = sorted(transcripts_dir.glob("*.csv"))
+    raw_csv_files = sorted(transcripts_dir.glob("*.csv"))
+    ignored_csv_files = [
+        p for p in raw_csv_files
+        if p.name.startswith(".") or p.name.startswith("~$") or p.stem.startswith("._")
+    ]
+    csv_files = [p for p in raw_csv_files if p not in ignored_csv_files]
     print(f"\n📝 EXPORTING {len(csv_files)} TRANSCRIPTS\n")
+    if ignored_csv_files:
+        print(f"ℹ️ Ignoring {len(ignored_csv_files)} hidden/system CSV files")
 
     exported = 0
     skipped = 0
@@ -370,7 +377,16 @@ def export_transcripts_to_obsidian(
             skipped += 1
             continue
 
-        df = pd.read_csv(csv_path)
+        try:
+            df = pd.read_csv(csv_path)
+        except pd.errors.EmptyDataError:
+            print(f"⚠️ Skipping empty CSV: {csv_path.name}")
+            skipped += 1
+            continue
+        except Exception as e:
+            print(f"⚠️ Skipping unreadable CSV {csv_path.name}: {e}")
+            skipped += 1
+            continue
 
         audio_name = find_audio_file(base, audio_vault_dir)
         audio_rel_path = f"{compact_audio_subfolder}/{audio_name}" if audio_name else None
@@ -504,7 +520,12 @@ def export_transcripts_to_obsidian(
                     lines.append(f"> **{q}**:: {prefilled}")
                 lines.append(">")
 
-        out_path.write_text("\n".join(lines), encoding="utf-8")
+        try:
+            out_path.write_text("\n".join(lines), encoding="utf-8")
+        except PermissionError as e:
+            print(f"❌ Permission denied writing {out_path.name}: {e}")
+            skipped += 1
+            continue
 
         audio_status = "🎧" if audio_rel_path else "⚠️ "
         val_count = len(flagged_segments)
