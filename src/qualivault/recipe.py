@@ -66,14 +66,19 @@ def strip_runtime_fields(item: Dict[str, Any]) -> Dict[str, Any]:
     return cleaned
 
 
-def generate_recipe(interviews: Dict[str, List[str]]) -> List[Dict[str, Any]]:
+def generate_recipe(interviews: Dict[str, List[str]], base_path: "Path | str | None" = None) -> List[Dict[str, Any]]:
     """Generate a clean recipe from scan results.
 
     `interviews` is mapping: id -> list[filepaths]
+    If `base_path` is given, file paths are stored relative to it (e.g. `org_audio_folder`)
+    so the recipe stays portable across machines.
     """
+    base = Path(base_path).expanduser().resolve() if base_path else None
     recipe: List[Dict[str, Any]] = []
     for i_id, files in interviews.items():
         files_sorted = sorted(files)
+        if base is not None:
+            files_sorted = [str(Path(f).resolve().relative_to(base)) for f in files_sorted]
         recipe.append(
             {
                 "id": str(i_id),

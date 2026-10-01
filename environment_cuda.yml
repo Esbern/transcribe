@@ -14,18 +14,27 @@ dependencies:
 
   # --- AI Engine (Pip with CUDA) ---
   - pip:
-      # Force NVIDIA CUDA 12.1 versions
-      - --index-url https://download.pytorch.org/whl/cu121
-      - "torch==2.5.1"
-      - "torchaudio==2.5.1"
+      # Force NVIDIA CUDA 12.8 versions (pyannote.audio>=4.0.0 requires torch>=2.8.0)
+      - --index-url https://download.pytorch.org/whl/cu128
+      - "torch==2.8.0"
+      - "torchaudio==2.8.0"
       
       # Standard packages (Reset index to PyPi)
       - --extra-index-url https://pypi.org/simple
       - transformers
       - accelerate
       - peft
-      - "pyannote.audio>=4.4.0"
+      - "pyannote.audio>=4.0.0"
       - silero-vad
       - noisereduce
       - soundfile
       - librosa
+
+# IMPORTANT: pyannote.audio pulls in torchcodec as a hard dependency, but torchcodec's
+# precompiled wheels are extremely brittle against this exact torch/CUDA/FFmpeg combo
+# (mismatched CUDA runtime libs, missing NVIDIA NPP libs, and ABI symbol mismatches were
+# all hit in practice). None of qualivault's own code, nor pyannote's actual audio
+# decoding (we pass in-memory waveforms, not file paths), needs torchcodec -- it degrades
+# gracefully when absent. After creating this environment, run:
+#   pip uninstall -y torchcodec
+# to avoid an "import torchcodec" crash deep inside transformers' ASR pipeline.

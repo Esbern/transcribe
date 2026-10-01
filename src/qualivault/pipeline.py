@@ -27,6 +27,21 @@ def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any
     return merged
 
 
+def _resolve_recipe_files(files: List[str], org_audio_folder: Optional[Path]) -> List[str]:
+    """Resolve recipe file entries, which are relative to `org_audio_folder`.
+
+    Absolute entries (including legacy Windows paths, which pathlib treats as
+    relative on Linux) are passed through as-is for backward compatibility.
+    """
+    resolved = []
+    for f in files:
+        p = Path(f)
+        if org_audio_folder is not None and not p.is_absolute():
+            p = org_audio_folder / p
+        resolved.append(str(p))
+    return resolved
+
+
 def _init_pyannote_pipeline(hf_token: Optional[str], device: str, cache_dir: Optional[Path] = None):
     if not hf_token:
         return None
@@ -34,7 +49,7 @@ def _init_pyannote_pipeline(hf_token: Optional[str], device: str, cache_dir: Opt
     from pyannote.audio import Pipeline
 
     logger.info("⏳ Initializing Pyannote diarization...")
-    kwargs = {"use_auth_token": hf_token}
+    kwargs = {"token": hf_token}
     if cache_dir:
         kwargs["cache_dir"] = str(cache_dir)
 
@@ -174,8 +189,11 @@ def prepare_audio_and_analyze(
     project_root = Path(project_root)
     recipe_path = Path(recipe_path)
 
-    flac_dir = (project_root / config["paths"]["flac_output_folder"]).resolve()
+    flac_dir = (project_root / Path(config["paths"]["flac_output_folder"]).expanduser()).resolve()
     flac_dir.mkdir(parents=True, exist_ok=True)
+
+    org_audio_folder = config.get("paths", {}).get("org_audio_folder")
+    org_audio_folder = Path(org_audio_folder).expanduser() if org_audio_folder else None
 
     models_dir = config.get("paths", {}).get("models_folder")
     cache_dir = (project_root / models_dir).resolve() if models_dir else None
@@ -223,7 +241,8 @@ def prepare_audio_and_analyze(
                 if out_path.exists():
                     state.mark_step_success(key, "convert", flac=str(out_path))
                 else:
-                    prepare_audio(item["files"], out_path)
+                    source_files = _resolve_recipe_files(item["files"], org_audio_folder)
+                    prepare_audio(source_files, out_path)
                     state.mark_step_success(key, "convert", flac=str(out_path))
                 converted += 1
             except Exception as e:
@@ -280,8 +299,8 @@ def transcribe_recipe(
     project_root = Path(project_root)
     recipe_path = Path(recipe_path)
 
-    flac_dir = (project_root / config["paths"]["flac_output_folder"]).resolve()
-    output_dir = (project_root / config["paths"]["output_base_folder"]).resolve()
+    flac_dir = (project_root / Path(config["paths"]["flac_output_folder"]).expanduser()).resolve()
+    output_dir = (project_root / Path(config["paths"]["output_base_folder"]).expanduser()).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
     models_dir = config.get("paths", {}).get("models_folder")

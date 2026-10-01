@@ -7,8 +7,22 @@ import librosa
 import numpy as np
 import soundfile as sf
 import noisereduce as nr
+import torch
 
 logger = logging.getLogger("QualiVault")
+
+def trim_silence(y: np.ndarray, top_db: float = 30.0, ref_percentile: float = 95.0, **kwargs):
+    """Trim leading/trailing silence, robust to brief loud transients (mic bumps, door slams).
+
+    `librosa.effects.trim`'s default reference is the signal's peak amplitude, so a single
+    loud moment anywhere in a recording can make `top_db` far too strict for the rest of the
+    file -- on real field recordings this has silently trimmed away many minutes of genuine
+    speech. Using a high percentile of per-frame RMS as the reference instead only shifts if a
+    meaningful fraction of frames are that loud, not just one brief spike.
+    """
+    ref = lambda S: np.percentile(S, ref_percentile)
+    return librosa.effects.trim(y, top_db=top_db, ref=ref, **kwargs)
+
 
 def check_ffmpeg():
     """Ensures ffmpeg is installed."""
@@ -90,6 +104,31 @@ def split_stereo(input_path, output_dir):
     subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return left_path, right_path
 
+def diarization_annotation(result):
+    """Normalize a pyannote Pipeline() call result to a plain Annotation.
+
+    pyannote.audio <4.0 returns an Annotation directly (has .itertracks()).
+    pyannote.audio >=4.0 returns a DiarizeOutput dataclass wrapping one as
+    `.speaker_diarization`. This lets calling code use .itertracks() either way.
+    """
+    return getattr(result, "speaker_diarization", result)
+
+
+def to_pyannote_waveform(audio: np.ndarray, sr: int) -> dict:
+    """Wrap an already-loaded waveform as the in-memory input pyannote.audio expects.
+
+    `audio` may be mono (1D, shape (time,)) or multi-channel (2D, shape (channels, time)).
+    Passing a file path instead forces pyannote to decode via torchcodec, which requires an
+    FFmpeg build torchcodec explicitly supports (currently 4-8). Passing the waveform we
+    already have in memory sidesteps that dependency entirely.
+    """
+    audio = np.ascontiguousarray(audio, dtype=np.float32)
+    if audio.ndim == 1:
+        audio = audio[np.newaxis, :]
+    waveform = torch.from_numpy(audio)
+    return {"waveform": waveform, "sample_rate": sr}
+
+
 def analyze_channel_separation(audio_path, pipeline):
     print(f"  🔍 Diagnosing: {audio_path.name}")
     stats = {"separation_status": "Unknown", "speakers_left": 0, "speakers_right": 0}
@@ -109,19 +148,13 @@ def analyze_channel_separation(audio_path, pipeline):
         # Still count speakers in the mono file
         if pipeline:
             print("  🧠 Counting Speakers (AI)...")
-            temp_file = audio_path.parent / "temp_mono.wav"
-            sf.write(temp_file, y, sr)
-            
             try:
-                diarization = pipeline(str(temp_file))
+                diarization = diarization_annotation(pipeline(to_pyannote_waveform(y, sr)))
                 stats["speakers_left"] = len(set(label for _, _, label in diarization.itertracks(yield_label=True)))
                 print(f"     Speakers: {stats['speakers_left']}")
             except Exception as e:
                 print(f"  ⚠️ Diarization error: {e}")
-            finally:
-                if temp_file.exists():
-                    temp_file.unlink()
-        
+
         return stats
 
     left_channel = y[0]
@@ -163,26 +196,17 @@ def analyze_channel_separation(audio_path, pipeline):
     # --- METRIC 2: SPEAKER COUNT ---
     if pipeline:
         print("  🧠 Counting Speakers (AI)...")
-        temp_l = audio_path.parent / "temp_L.wav"
-        temp_r = audio_path.parent / "temp_R.wav"
-        
-        sf.write(temp_l, left_channel, sr)
-        sf.write(temp_r, right_channel, sr)
-        
         try:
-            diarization_l = pipeline(str(temp_l))
+            diarization_l = diarization_annotation(pipeline(to_pyannote_waveform(left_channel, sr)))
             stats["speakers_left"] = len(set(label for _, _, label in diarization_l.itertracks(yield_label=True)))
             print(f"     L : {stats['speakers_left']} speakers")
-            
-            diarization_r = pipeline(str(temp_r))
+
+            diarization_r = diarization_annotation(pipeline(to_pyannote_waveform(right_channel, sr)))
             stats["speakers_right"] = len(set(label for _, _, label in diarization_r.itertracks(yield_label=True)))
             print(f"     R :  {stats['speakers_right']} speakers")
         except Exception as e:
             print(f"  ⚠️ Diarization error: {e}")
-        finally:
-            if temp_l.exists(): temp_l.unlink()
-            if temp_r.exists(): temp_r.unlink()
-            
+
     return stats
 
 def apply_noise_gate(input_path, output_path, prop_decrease=1.0):

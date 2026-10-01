@@ -14,6 +14,7 @@ from huggingface_hub import login
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 from pyannote.audio import Pipeline
 from pyannote.core import Segment
+from qualivault.audio import to_pyannote_waveform, diarization_annotation, trim_silence as trim_silence_audio
 import librosa
 import soundfile as sf
 import pandas as pd
@@ -281,8 +282,8 @@ audio_input/
 
 def scan_audio_folder(base_path, folder_re, file_re):
     results = {}
-    base = Path(base_path)
-    
+    base = Path(base_path).expanduser()
+
     if not base.exists():
         logger.error(f"❌ Error: Path does not exist: {base}")
         return {}
@@ -351,7 +352,7 @@ def process_recipe(recipe_path, flac_dir, output_dir, config=None, hf_token=None
             logger.info("⏳ Loading Diarization Pipeline...")
             diarization_pipeline = Pipeline.from_pretrained(
                 "pyannote/speaker-diarization-3.1",
-                use_auth_token=hf_token,
+                token=hf_token,
                 cache_dir=cache_dir
             )
             diarization_pipeline.to(torch.device(device))
@@ -528,7 +529,7 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
 
     if trim_silence:
         try:
-            y_mono, trim_idx = librosa.effects.trim(y_mono, top_db=trim_top_db)
+            y_mono, trim_idx = trim_silence_audio(y_mono, top_db=trim_top_db)
             if y_stereo is not None and trim_idx is not None:
                 start_i, end_i = int(trim_idx[0]), int(trim_idx[1])
                 y_stereo = y_stereo[:, start_i:end_i]
@@ -577,13 +578,10 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
     )
 
     if use_stereo_for_diarization:
-        temp_diar_wav = output_dir / "temp_process_diar.wav"
-        sf.write(temp_diar_wav, y_stereo.T, sr)
-        diarization_input = temp_diar_wav
+        diarization_source = to_pyannote_waveform(y_stereo, sr)
         logger.info("   🎚️ Diarization input: stereo (preprocessed)")
     else:
-        temp_diar_wav = temp_wav
-        diarization_input = temp_wav
+        diarization_source = to_pyannote_waveform(y_mono, sr)
         logger.info("   🎚️ Diarization input: mono (preprocessed)")
 
     del y_mono
@@ -628,7 +626,7 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
 
     logger.info(f"   🧾 Diarization kwargs: {diarization_kwargs}")
 
-    diarization = diarization_pipeline(str(diarization_input), **diarization_kwargs)
+    diarization = diarization_annotation(diarization_pipeline(diarization_source, **diarization_kwargs))
     
     # Memory cleanup after Diarization to prepare for Whisper
     _flush_gpu_memory()
@@ -946,8 +944,6 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
         pass
     if temp_wav.exists():
         temp_wav.unlink()
-    if temp_diar_wav != temp_wav and temp_diar_wav.exists():
-        temp_diar_wav.unlink()
 
     _flush_gpu_memory()
 

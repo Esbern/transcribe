@@ -20,27 +20,38 @@ Pick the environment that matches your hardware and transcription backend prefer
 
 **Option A: Mac (Apple Silicon, MPS) — Transformers Whisper (default):**
 ```bash
-micromamba create -f environment_mac.yml
-micromamba activate qualivault
+conda create -f environment_mac.yml
+conda activate qualivault
 ```
 
 **Option B: Windows/Linux (NVIDIA CUDA) — Transformers Whisper (default):**
 ```bash
-micromamba create -f environment_cuda.yml
-micromamba activate qualivault
+conda create -f environment_cuda.yml
+conda activate qualivault
+pip uninstall -y torchcodec
 ```
 
 **Option C: Windows/Linux (NVIDIA CUDA) — WhisperX (fastest):**
 ```bash
-micromamba create -f environment_cuda.yml
-micromamba activate qualivault
+conda create -f environment_cuda.yml
+conda activate qualivault
+pip uninstall -y torchcodec
 pip install whisperx
 ```
 
+> **Why `pip uninstall -y torchcodec`?** `pyannote.audio` pulls in `torchcodec` as a
+> dependency, but its precompiled wheels are unreliable against the CUDA/FFmpeg
+> combination this environment installs (mismatched CUDA runtime libs, missing NVIDIA
+> NPP libraries, and ABI symbol mismatches have all been observed in practice). Nothing
+> in this project's code needs it — audio is always loaded via `librosa`/`soundfile` and
+> handed to models as in-memory waveforms — but if it's present and broken, it crashes
+> deep inside `transformers`' ASR pipeline the moment transcription starts. Removing it
+> lets everything fall back to the working path automatically.
+
 **Option D: CPU-only (any OS) — faster-whisper (lightweight):**
 ```bash
-micromamba create -f environment_cpu.yml
-micromamba activate qualivault
+conda create -f environment_cpu.yml
+conda activate qualivault
 ```
 
 ### 4. Install PyTorch and Dependencies
