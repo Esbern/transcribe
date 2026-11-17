@@ -16,7 +16,10 @@ dependencies = [
     "librosa",
     "soundfile",
     "pyannote.audio",
-    "noisereduce"
+    "noisereduce",
+    "numpy",
+    "pandas",
+    "requests"
 ]
 
 [project.scripts]

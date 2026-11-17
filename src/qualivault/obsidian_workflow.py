@@ -379,6 +379,10 @@ def export_transcripts_to_obsidian(
 
         try:
             df = pd.read_csv(csv_path)
+            # Empty Whisper output reads back as NaN, which would render as the literal text "nan".
+            df["Text"] = df["Text"].fillna("") if "Text" in df.columns else ""
+            df["Speaker"] = df["Speaker"].fillna("Unknown") if "Speaker" in df.columns else "Unknown"
+            df["Start"] = pd.to_numeric(df["Start"], errors="coerce").fillna(0.0) if "Start" in df.columns else 0.0
         except pd.errors.EmptyDataError:
             print(f"⚠️ Skipping empty CSV: {csv_path.name}")
             skipped += 1

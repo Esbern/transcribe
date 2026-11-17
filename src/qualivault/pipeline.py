@@ -42,6 +42,12 @@ def _resolve_recipe_files(files: List[str], org_audio_folder: Optional[Path]) ->
     return resolved
 
 
+def _ctranslate2_model_name(model_id: str) -> str:
+    """WhisperX / faster-whisper take short names ("large-v3"), not HF ids ("openai/whisper-large-v3")."""
+    prefix = "openai/whisper-"
+    return model_id[len(prefix):] if model_id.startswith(prefix) else model_id
+
+
 def _init_pyannote_pipeline(hf_token: Optional[str], device: str, cache_dir: Optional[Path] = None):
     if not hf_token:
         return None
@@ -93,7 +99,7 @@ def _transcribe_with_whisperx(
     whisperx = importlib.import_module("whisperx")
 
     compute_type = "float16" if device == "cuda" else "int8"
-    model = whisperx.load_model(model_id, device, compute_type=compute_type)
+    model = whisperx.load_model(_ctranslate2_model_name(model_id), device, compute_type=compute_type)
     result = model.transcribe(str(audio_path), language=language)
 
     segments = result.get("segments", [])
@@ -150,7 +156,7 @@ def _transcribe_with_faster_whisper(
 
     fw_device = "cuda" if device == "cuda" else "cpu"
     compute_type = "float16" if fw_device == "cuda" else "int8"
-    model = WhisperModel(model_id, device=fw_device, compute_type=compute_type)
+    model = WhisperModel(_ctranslate2_model_name(model_id), device=fw_device, compute_type=compute_type)
 
     segments, _info = model.transcribe(str(audio_path), language=language)
 
@@ -321,11 +327,17 @@ def transcribe_recipe(
     if backend == "auto":
         # CUDA: prefer WhisperX (fast, strong) if installed; otherwise transformers.
         # Non-CUDA: default to transformers (MPS/CPU).
-        backend = "whisperx" if device == "cuda" else "transformers"
+        import importlib.util
+
+        whisperx_installed = importlib.util.find_spec("whisperx") is not None
+        backend = "whisperx" if device == "cuda" and whisperx_installed else "transformers"
+        logger.info(f"🔀 Backend auto-selected: {backend}")
 
     diarization_pipe = None
     transcriber = None
     if backend == "transformers":
+        if not hf_token:
+            raise ValueError("The transformers backend needs pyannote diarization: set hf_token in config.yml.")
         diarization_pipe = _init_pyannote_pipeline(hf_token, device=device, cache_dir=cache_dir)
         transcriber = _init_transcriber(config, device=device, cache_dir=cache_dir)
 

@@ -20,20 +20,20 @@ Pick the environment that matches your hardware and transcription backend prefer
 
 **Option A: Mac (Apple Silicon, MPS) — Transformers Whisper (default):**
 ```bash
-conda create -f environment_mac.yml
+conda env create -f environment_mac.yml
 conda activate qualivault
 ```
 
 **Option B: Windows/Linux (NVIDIA CUDA) — Transformers Whisper (default):**
 ```bash
-conda create -f environment_cuda.yml
+conda env create -f environment_cuda.yml
 conda activate qualivault
 pip uninstall -y torchcodec
 ```
 
 **Option C: Windows/Linux (NVIDIA CUDA) — WhisperX (fastest):**
 ```bash
-conda create -f environment_cuda.yml
+conda env create -f environment_cuda.yml
 conda activate qualivault
 pip uninstall -y torchcodec
 pip install whisperx
@@ -50,7 +50,7 @@ pip install whisperx
 
 **Option D: CPU-only (any OS) — faster-whisper (lightweight):**
 ```bash
-conda create -f environment_cpu.yml
+conda env create -f environment_cpu.yml
 conda activate qualivault
 ```
 
@@ -166,3 +166,4 @@ Launch Jupyter Lab directly in your project folder:
 
 ```bash
 python -m qualivault.cli --notebook my_interview_study
+```

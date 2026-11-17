@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import yaml
 from pathlib import Path
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, List
 
 
 RUNTIME_STATUS_KEYS = {

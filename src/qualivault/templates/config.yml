@@ -45,8 +45,14 @@ transcription:
 
   # Diarization controls. Lower max_speakers can stabilize rough two-person interviews.
   diarization:
+    # Where the speaker count comes from:
+    # - recipe: use the recipe's per-interview 'speakers' as the exact count
+    # - config: use min_speakers / max_speakers below
+    # - auto:   use the recipe 'speakers' according to speakers_policy (falls back to min/max)
+    speaker_count_source: "auto"
     min_speakers: 2
     max_speakers:
+    # (used when speaker_count_source is auto)
     # strict: use recipe 'speakers' exactly when present
     # bounded: use recipe 'speakers' as min and allow +1
     speakers_policy: "strict"

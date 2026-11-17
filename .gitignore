@@ -4,4 +4,4 @@ __pycache__/
 .ipynb_checkpoints/
 projects/
 output/
-moddels
+models/

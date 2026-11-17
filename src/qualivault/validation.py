@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 QualiVault Transcript Validation Module
 
@@ -142,11 +142,7 @@ Be conservative - only flag clear problems."""
 
         prompt = prompt_template.format(language=language, text=text, speaker=speaker)
 
-        options = None
-        min_len = 10
-        if validation_params:
-            options = validation_params.get("ollama_options")
-            min_len = validation_params.get("min_text_length", min_len)
+        options = validation_params.get("ollama_options") if validation_params else None
 
         response = self._query_ollama(prompt, options=options)
         
@@ -156,6 +152,9 @@ Be conservative - only flag clear problems."""
                 json_start = response.index("{")
                 json_end = response.rindex("}") + 1
                 result = json.loads(response[json_start:json_end])
+                has_issues = result.get('has_issues')
+                if isinstance(has_issues, str):
+                    result['has_issues'] = has_issues.strip().lower() in {"true", "yes", "1"}
             else:
                 # Fallback if no JSON
                 result = {
@@ -206,7 +205,7 @@ Be conservative - only flag clear problems."""
         logger.info(f"📋 Validating: {csv_path.name} ({len(df)} segments)")
         
         # Sample segments (validate every Nth segment)
-        step = max(1, int(1 / sample_rate))
+        step = max(1, int(1 / sample_rate)) if sample_rate and sample_rate > 0 else 1
         sampled_indices = list(range(0, len(df), step))
         if max_segments:
             sampled_indices = sampled_indices[:max_segments]
@@ -279,17 +278,18 @@ def validate_recipe_transcripts(recipe_path: Path, transcripts_dir: Path,
         logger.error(f"Recipe not found: {recipe_path}")
         return []
     
-    with open(recipe_path, 'r') as f:
+    with open(recipe_path, 'r', encoding='utf-8') as f:
         recipe = yaml.safe_load(f)
     
     validator = OllamaValidator(model=model, ollama_url=ollama_url)
     reports = []
     
     for item in recipe:
-        # Only validate transcribed items
-        if item.get('transcribe_status') != 'transcribed':
+        # Validate every item with a transcript CSV. (pipeline.py tracks progress in
+        # .qualivault/run_state.json and never sets the recipe's transcribe_status.)
+        if item.get('transcribe_status') == 'error':
             continue
-        
+
         transcript_path = transcripts_dir / item['output_name'].replace('.flac', '.csv')
         
         if not transcript_path.exists():
@@ -312,8 +312,8 @@ def validate_recipe_transcripts(recipe_path: Path, transcripts_dir: Path,
             item['flagged_issues'] = len(report.get('flagged_segments', []))
     
     # Save updated recipe
-    with open(recipe_path, 'w') as f:
-        yaml.dump(recipe, f, sort_keys=False, allow_unicode=True)
+    with open(recipe_path, 'w', encoding='utf-8') as f:
+        yaml.safe_dump(recipe, f, sort_keys=False, allow_unicode=True)
     
     logger.info(f"✅ Validated {len(reports)} transcripts")
     

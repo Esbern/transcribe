@@ -325,16 +325,20 @@ def process_recipe(recipe_path, flac_dir, output_dir, config=None, hf_token=None
         logger.error(f"❌ Recipe file not found: {recipe_path}")
         return
 
-    with open(recipe_path, 'r') as f:
+    with open(recipe_path, 'r', encoding='utf-8') as f:
         recipe = yaml.safe_load(f)
 
     # Initialize Models
     device = get_device()
     transcription_config = config.get("transcription", {}) if config else {}
-    transcriber = Transcriber(device=device, cache_dir=cache_dir, config=transcription_config)
-    
+    transcriber = Transcriber(
+        device=device,
+        model_id=transcription_config.get("model_id", "openai/whisper-large-v3"),
+        cache_dir=cache_dir,
+        config=transcription_config,
+    )
+
     # Prepare Transcription Settings
-    language = "da"
     prompt_ids = None
     language = transcription_config.get("language", "da")
     topic_prompt = transcription_config.get("topic_prompt")
@@ -444,21 +448,21 @@ def process_recipe(recipe_path, flac_dir, output_dir, config=None, hf_token=None
                 item['last_good_status'] = 'transcribed'
                 item['transcript_path'] = str(csv_path)
                 updated = True
-                with open(recipe_path, 'w') as f:
-                    yaml.dump(recipe, f, sort_keys=False)
+                with open(recipe_path, 'w', encoding='utf-8') as f:
+                    yaml.safe_dump(recipe, f, sort_keys=False, allow_unicode=True)
         except Exception as e:
             logger.error(f"❌ Failed processing {item['output_name']}: {e}")
             item['transcribe_status'] = 'error'
             item['status'] = 'error'
             item['error_msg'] = str(e)
             updated = True
-            with open(recipe_path, 'w') as f:
-                yaml.dump(recipe, f, sort_keys=False)
+            with open(recipe_path, 'w', encoding='utf-8') as f:
+                yaml.safe_dump(recipe, f, sort_keys=False, allow_unicode=True)
             continue
 
     if updated:
-        with open(recipe_path, 'w') as f:
-            yaml.dump(recipe, f, sort_keys=False)
+        with open(recipe_path, 'w', encoding='utf-8') as f:
+            yaml.safe_dump(recipe, f, sort_keys=False, allow_unicode=True)
         logger.info("✅ Recipe updated.")
 
 def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, language="da", prompt_ids=None):
@@ -468,6 +472,11 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
     if not audio_path.exists():
         logger.error(f"❌ File not found: {audio_path}")
         return None
+
+    if diarization_pipeline is None:
+        raise RuntimeError(
+            "No diarization pipeline: the transformers backend needs pyannote, so set hf_token in config.yml."
+        )
 
     logger.info(f"🚀 Processing: {filename}")
     
@@ -957,8 +966,7 @@ class Transcriber:
         self.config = config or {}
         self.device = device if device else get_device()
         
-        # Mac MPS does not support float16 for all ops yet, so we use float32 for safety on Mac
-        # CUDA uses float16 for speed. MPS can use float16 for memory saving if supported.
+        # float16 on GPU backends (CUDA, MPS) for speed and memory; float32 on CPU.
         self.torch_dtype = torch.float16 if self.device in ["cuda", "mps"] else torch.float32
         
         logger.info(f"⏳ Loading Model: {model_id} on {self.device.upper()}...")
@@ -1122,7 +1130,7 @@ def export_recipe(recipe_path, output_dir, config=None):
         logger.error(f"❌ Recipe not found: {recipe_path}")
         return
 
-    with open(recipe_path, 'r') as f:
+    with open(recipe_path, 'r', encoding='utf-8') as f:
         recipe = yaml.safe_load(f)
         
     logger.info(f"📂 Exporting to: {obsidian_dir}")
