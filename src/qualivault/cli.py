@@ -1,7 +1,6 @@
 import argparse
 from pathlib import Path
 import subprocess
-import shutil
 
 def create_workspace(project_name):
     """
@@ -23,7 +22,8 @@ def create_workspace(project_name):
         if target.exists():
             print(f"  ℹ️  notebooks/{target.name} already exists")
         else:
-            shutil.copy(template_path, target)
+            content = template_path.read_text(encoding="utf-8")
+            target.write_text(content.replace("{{PROJECT_NAME}}", project_name), encoding="utf-8")
             print(f"  ✅ Created notebooks/{target.name}")
 
     # 2. Create config.yml Template
@@ -31,9 +31,22 @@ def create_workspace(project_name):
     if not config_file.exists():
         create_config_yaml(config_file, project_name)
 
+    # 3. Secrets go in a git-ignored .env, not in config.yml
+    env_file = project_dir / ".env"
+    if not env_file.exists():
+        env_file.write_text("# Hugging Face token for pyannote diarization (never commit this file)\nHF_TOKEN=\n", encoding="utf-8")
+        print("  ✅ Created .env (add your HF_TOKEN here)")
+    gitignore = project_dir / ".gitignore"
+    if not gitignore.exists():
+        gitignore.write_text(
+            ".env\n.ipynb_checkpoints/\n__pycache__/\n*.wav\n*.WAV\n*.mp3\n*.m4a\n*.flac\n", encoding="utf-8"
+        )
+        print("  ✅ Created .gitignore (excludes .env and audio)")
+
     print("\n🎉 Setup complete! Next steps:")
-    print("1. Open 'config.yml' and add your HF_TOKEN (if needed).")
-    print(f"2. Run 'python -m qualivault.cli --notebook {project_name}' to start.")
+    print("1. Put your Hugging Face token in .env (HF_TOKEN=...).")
+    print("2. In config.yml set paths.org_audio_folder and the output folders, language and topic_prompt.")
+    print(f"3. Run 'python -m qualivault.cli --notebook {project_name}' and start with 00_Setup_and_Scan.")
 
 def create_config_yaml(path, project_name):
     """Creates config.yml from template."""

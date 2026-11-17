@@ -134,14 +134,17 @@ python -m qualivault.cli --init my_interview_study
 
 This creates:
 *   `projects/my_interview_study/config.yml`
-*   `projects/my_interview_study/notebooks/`
-*   `projects/my_interview_study/.gitignore` (excludes audio files)
+*   `projects/my_interview_study/notebooks/` (00–05, already set to this project's name)
+*   `projects/my_interview_study/.env` (for `HF_TOKEN`)
+*   `projects/my_interview_study/.gitignore` (excludes `.env` and audio files)
+
+**Audio layout:** one folder per interview inside `paths.org_audio_folder`, named `<name>_<id>` (e.g. `Hansen_12`). Notebook `00_Setup_and_Scan` scans the folders, writes `processing_recipe.yaml` and checks it (duplicate ids, missing files, …). Fill in `speakers` for each interview in the recipe before running `01_Prepare_Audio`.
 
 ### 2. Configure
 Open `projects/my_interview_study/config.yml`.
 
 **Key Settings:**
-*   **`hf_token`**: Your Hugging Face token (required for Pyannote diarization).
+*   **Hugging Face token** (required for Pyannote diarization): put `HF_TOKEN=hf_...` in the project's `.env` file (created by `--init`, git-ignored). `hf_token` in `config.yml` still works but would be committed to the project's git repo.
 *   **`transcription`**:
     *   `backend`: `auto` (recommended), `whisperx` (CUDA), or `transformers`.
     *   CPU-only fallback: `faster_whisper`

@@ -10,8 +10,16 @@ from typing import Any, Dict, List, Optional
 import torch
 
 from qualivault.audio import analyze_channel_separation, prepare_audio
-from qualivault.core import Transcriber, _flush_gpu_memory, get_device, process_item
-from qualivault.recipe import expected_csv_name, expected_flac_name, interview_key, load_recipe, save_recipe
+from qualivault.core import Transcriber, _flush_gpu_memory, get_device, get_hf_token, process_item
+from qualivault.recipe import (
+    assert_recipe_ok,
+    check_recipe,
+    expected_csv_name,
+    expected_flac_name,
+    interview_key,
+    load_recipe,
+    save_recipe,
+)
 from qualivault.state import RunState
 
 logger = logging.getLogger("QualiVault")
@@ -204,7 +212,10 @@ def prepare_audio_and_analyze(
     models_dir = config.get("paths", {}).get("models_folder")
     cache_dir = (project_root / models_dir).resolve() if models_dir else None
 
-    hf_token = config.get("hf_token")
+    recipe = load_recipe(recipe_path)
+    assert_recipe_ok(recipe, org_audio_folder)
+
+    hf_token = get_hf_token(config, project_root)
     device = get_device()
 
     state = RunState(RunState.default_path(project_root)).load()
@@ -217,7 +228,6 @@ def prepare_audio_and_analyze(
             logger.warning(f"⚠️ Could not initialize pyannote (speaker counting disabled): {e}")
             diarization_pipe = None
 
-    recipe = load_recipe(recipe_path)
     if max_items is not None:
         recipe = recipe[:max_items]
 
@@ -312,7 +322,7 @@ def transcribe_recipe(
     models_dir = config.get("paths", {}).get("models_folder")
     cache_dir = (project_root / models_dir).resolve() if models_dir else None
 
-    hf_token = config.get("hf_token")
+    hf_token = get_hf_token(config, project_root)
     device = get_device()
 
     state = RunState(RunState.default_path(project_root)).load()
@@ -333,15 +343,19 @@ def transcribe_recipe(
         backend = "whisperx" if device == "cuda" and whisperx_installed else "transformers"
         logger.info(f"🔀 Backend auto-selected: {backend}")
 
+    recipe = load_recipe(recipe_path)
+    recipe_errors, _ = check_recipe(recipe)  # structural checks only; sources were checked in prepare
+    if recipe_errors:
+        raise ValueError("Recipe problems (fix processing_recipe.yaml first):\n  - " + "\n  - ".join(recipe_errors))
+
     diarization_pipe = None
     transcriber = None
     if backend == "transformers":
         if not hf_token:
-            raise ValueError("The transformers backend needs pyannote diarization: set hf_token in config.yml.")
+            raise ValueError("The transformers backend needs pyannote diarization: set HF_TOKEN in the project's .env file.")
         diarization_pipe = _init_pyannote_pipeline(hf_token, device=device, cache_dir=cache_dir)
         transcriber = _init_transcriber(config, device=device, cache_dir=cache_dir)
 
-    recipe = load_recipe(recipe_path)
     if max_items is not None:
         recipe = recipe[:max_items]
 

@@ -1,7 +1,9 @@
 project_name: "{{PROJECT_NAME}}"
 
-# Hugging Face Token (Required for Pyannote/Diarization)
-# Leave empty if models are cached or you are logged in via CLI.
+# Hugging Face token (required for pyannote diarization).
+# Leave this empty and put the token in the project's .env file instead:
+#   HF_TOKEN=hf_...
+# .env is git-ignored, so the token never ends up in the project's git history.
 hf_token: ""
 
 # Suppress technical warnings (DeprecationWarning, FutureWarning) to keep output clean
@@ -109,11 +111,14 @@ paths:
 text_corrections: {}
 
 patterns:
-  # Regex to extract an ID from the folder name (e.g., "Session_101" -> "101")
-  folder_id_regex: ".*(?P<id>\\d+).*"
+  # One folder per interview, named <name>_<id>, e.g. "Hansen_12" -> id "12".
+  # The id is the number after the LAST underscore. Every audio file in the folder
+  # (matching target_audio_regex) is joined, in file-name order, into one interview.
+  folder_id_regex: "_(?P<id>\\d+)$"
   
   # Regex to identify ALL audio files (for auditing/checking)
   all_audio_regex: ".*\\.(wav|mp3|m4a|flac)$"
 
-  # Regex to identify TARGET audio files to process (e.g. specific recorder suffix)
-  target_audio_regex: ".*Trlr\\.wav$"
+  # Regex to identify TARGET audio files to process. Narrow this if the recorder
+  # writes several versions of the same recording (e.g. ".*TrLR\\.wav$" for Tascam stereo).
+  target_audio_regex: ".*\\.(wav|mp3|m4a|flac)$"

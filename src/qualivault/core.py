@@ -190,6 +190,24 @@ def _chunk_overlaps_speech(start_s: float, end_s: float, speech_segments) -> boo
             return True
     return False
 
+def get_hf_token(config=None, project_root=None):
+    """Hugging Face token: config.yml `hf_token`, else HF_TOKEN from <project_root>/.env or the environment.
+
+    Keeping the token in a git-ignored `.env` file stops it ending up in the project's git history.
+    """
+    token = (config or {}).get("hf_token")
+    if token:
+        return token
+    try:
+        from dotenv import load_dotenv
+
+        if project_root is not None:
+            load_dotenv(Path(project_root) / ".env", override=False)
+    except ImportError:
+        pass
+    return os.environ.get("HF_TOKEN") or None
+
+
 def setup_environment():
     """
     Initializes the QualiVault environment.
@@ -206,9 +224,9 @@ def setup_environment():
     
     if os.path.exists(config_path):
         try:
-            with open(config_path, "r") as f:
+            with open(config_path, "r", encoding="utf-8") as f:
                 config = yaml.safe_load(f)
-                hf_token = config.get("hf_token")
+                hf_token = get_hf_token(config, Path(config_path).parent)
                 
                 # Suppress warnings if configured
                 if config.get("suppress_warnings", True):
@@ -233,7 +251,7 @@ def setup_environment():
         except Exception as e:
             logger.error(f"❌ Authentication failed: {e}")
     else:
-        logger.info("ℹ️ No HF_TOKEN found in config.yml. Proceeding (models must be cached or public).")
+        logger.info("ℹ️ No HF token found (config.yml hf_token, .env or HF_TOKEN). Proceeding (models must be cached or public).")
 
     # 3. Device Detection
     device = get_device()
@@ -266,10 +284,12 @@ def init_git_project(project_root="."):
 .ipynb_checkpoints/
 __pycache__/
 *.wav
+*.WAV
 *.mp3
 *.m4a
 *.flac
 audio_input/
+.env
 """
     with open(project_root / ".gitignore", "w") as f:
         f.write(gitignore_content.strip())
@@ -475,7 +495,7 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
 
     if diarization_pipeline is None:
         raise RuntimeError(
-            "No diarization pipeline: the transformers backend needs pyannote, so set hf_token in config.yml."
+            "No diarization pipeline: the transformers backend needs pyannote, so set HF_TOKEN in the project's .env file."
         )
 
     logger.info(f"🚀 Processing: {filename}")
