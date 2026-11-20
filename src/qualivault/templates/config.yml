@@ -112,8 +112,9 @@ text_corrections: {}
 
 patterns:
   # One folder per interview, named <name>_<id>, e.g. "Hansen_12" -> id "12".
-  # The id is the number after the LAST underscore. Every audio file in the folder
-  # (matching target_audio_regex) is joined, in file-name order, into one interview.
+  # The id is the number after the LAST underscore. If a folder holds several audio files
+  # (matching target_audio_regex), each file becomes its own part (id "12-1", "12-2", ...):
+  # it is calibrated and diarized separately, and the transcripts are joined afterwards.
   folder_id_regex: "_(?P<id>\\d+)$"
   
   # Regex to identify ALL audio files (for auditing/checking)

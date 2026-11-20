@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional
 import torch
 
 from qualivault.audio import analyze_channel_separation, prepare_audio
+from qualivault.parts import merge_part_transcripts, parts_dir
 from qualivault.core import Transcriber, _flush_gpu_memory, get_device, get_hf_token, process_item
 from qualivault.recipe import (
     assert_recipe_ok,
@@ -367,7 +368,10 @@ def transcribe_recipe(
         csv_name = expected_csv_name(item)
 
         flac_path = flac_dir / flac_name
-        csv_path = output_dir / csv_name
+        # Parts of a multi-file interview go to _parts/ and are joined after transcription.
+        item_output_dir = parts_dir(output_dir) if item.get("part") else output_dir
+        item_output_dir.mkdir(parents=True, exist_ok=True)
+        csv_path = item_output_dir / csv_name
 
         if resume and csv_path.exists():
             # Migration-friendly: existing transcript counts as success even if state is new.
@@ -438,7 +442,7 @@ def transcribe_recipe(
                 out_csv = process_item(
                     item_local,
                     flac_dir=flac_dir,
-                    output_dir=output_dir,
+                    output_dir=item_output_dir,
                     transcriber=transcriber,
                     diarization_pipeline=diarization_pipe,
                     language=language,
@@ -461,4 +465,18 @@ def transcribe_recipe(
 
     logger.info("=" * 70)
     logger.info(f"✅ Transcription complete. Done: {done}, Skipped: {skipped}, Failed: {failed}")
+
+    # Join multi-file interviews whose parts are all transcribed. Uses the project's master
+    # recipe, so it also works when `recipe_path` is a selected subset.
+    master_recipe = project_root / "processing_recipe.yaml"
+    try:
+        merge_part_transcripts(
+            project_root=project_root,
+            config=config,
+            recipe_path=master_recipe if master_recipe.exists() else recipe_path,
+            hf_token=hf_token,
+            device=device,
+        )
+    except Exception as e:
+        logger.error(f"❌ Joining part transcripts failed: {e}")
     logger.info(f"📍 State file: {state.state_path}")

@@ -140,6 +140,8 @@ This creates:
 
 **Audio layout:** one folder per interview inside `paths.org_audio_folder`, named `<name>_<id>` (e.g. `Hansen_12`). Notebook `00_Setup_and_Scan` scans the folders, writes `processing_recipe.yaml` and checks it (duplicate ids, missing files, …). Fill in `speakers` for each interview in the recipe before running `01_Prepare_Audio`.
 
+**Several audio files in one folder** (a new room or recording device) become separate parts (`id: 12-1`, `12-2`, …). Each part is calibrated, diarized and transcribed on its own; afterwards the part transcripts (in `<output_base_folder>/_parts/`) are joined into one `Interview_<id>.csv`, with speakers matched across parts by voice embedding. The Obsidian note gets one section per part, each with its own recording.
+
 ### 2. Configure
 Open `projects/my_interview_study/config.yml`.
 

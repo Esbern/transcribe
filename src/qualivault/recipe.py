@@ -67,12 +67,21 @@ def strip_runtime_fields(item: Dict[str, Any]) -> Dict[str, Any]:
     return cleaned
 
 
-def generate_recipe(interviews: Dict[str, List[str]], base_path: "Path | str | None" = None) -> List[Dict[str, Any]]:
+def generate_recipe(
+    interviews: Dict[str, List[str]],
+    base_path: "Path | str | None" = None,
+    split_parts: bool = True,
+) -> List[Dict[str, Any]]:
     """Generate a clean recipe from scan results.
 
     `interviews` is mapping: id -> list[filepaths]
     If `base_path` is given, file paths are stored relative to it (e.g. `org_audio_folder`)
     so the recipe stays portable across machines.
+
+    With `split_parts` (default), an interview made of several files gets one recipe item
+    per file (see `split_into_parts`): a new file usually means a new room or recording
+    device, so each part is preprocessed, analysed and diarized on its own, and the
+    transcripts are joined afterwards (`parts.merge_part_transcripts`).
     """
     base = Path(base_path).expanduser().resolve() if base_path else None
     recipe: List[Dict[str, Any]] = []
@@ -89,7 +98,40 @@ def generate_recipe(interviews: Dict[str, List[str]], base_path: "Path | str | N
                 "output_name": f"Interview_{i_id}.flac",
             }
         )
-    return recipe
+    return split_into_parts(recipe) if split_parts else recipe
+
+
+def part_output_stem(interview_id: str, part: int) -> str:
+    return f"Interview_{interview_id}_part{part}"
+
+
+def split_into_parts(recipe: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Turn every multi-file item into one item per file.
+
+    Interview "20" with three files becomes ids "20-1", "20-2", "20-3", each with
+    `interview_id: "20"`, `part: n` and `output_name: Interview_20_part<n>.flac`.
+    Other fields (e.g. `speakers`) are copied to each part. Single-file items are unchanged.
+    """
+    out: List[Dict[str, Any]] = []
+    for it in recipe:
+        files = it.get("files") or []
+        if len(files) <= 1 or it.get("part"):
+            out.append(it)
+            continue
+        iid = str(it["id"])
+        for n, f in enumerate(files, start=1):
+            part = {k: v for k, v in strip_runtime_fields(it).items() if k not in ("id", "files", "output_name")}
+            out.append(
+                {
+                    "id": f"{iid}-{n}",
+                    "interview_id": iid,
+                    "part": n,
+                    **{k: v for k, v in part.items() if k in ("speakers",)},
+                    "files": [f],
+                    "output_name": f"{part_output_stem(iid, n)}.flac",
+                }
+            )
+    return out
 
 
 def check_recipe(
@@ -132,6 +174,8 @@ def check_recipe(
                 path = Path(f) if Path(f).is_absolute() else base / f
                 if not path.exists():
                     errors.append(f"{label}: file not found: {path}")
+        if it.get("part") and not it.get("interview_id"):
+            errors.append(f"{label}: has 'part' but no 'interview_id'")
         if len(files) > 1:
             warnings.append(f"{label}: {len(files)} files will be joined in name order: {[Path(f).name for f in files]}")
         if it.get("speakers") in (None, ""):
