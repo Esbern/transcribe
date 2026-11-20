@@ -81,16 +81,78 @@ def start_notebook(project_name):
     except Exception as e:
         print(f"❌ Error starting Jupyter Lab: {e}")
 
+def _load_project(project_name):
+    import os
+    import yaml
+
+    project_dir = (Path.cwd() / "projects" / project_name).resolve()
+    if not (project_dir / "config.yml").exists():
+        raise SystemExit(f"❌ No config.yml in {project_dir}")
+    os.chdir(project_dir)  # core.setup_environment reads ./config.yml
+    with open(project_dir / "config.yml", encoding="utf-8") as f:
+        return project_dir, yaml.safe_load(f)
+
+
+def export_project(project_name):
+    """Clean transcripts (+ text_corrections), build compact audio, write the Obsidian vault."""
+    from qualivault.export_workflow import run_export
+
+    project_dir, config = _load_project(project_name)
+    run_export(project_dir, config)
+    print("✅ Export done.")
+
+
+def run_project(project_name, attempts=3):
+    """Unattended: convert/analyse, transcribe (resumable, retried), join parts, export."""
+    import warnings
+
+    from qualivault.core import setup_environment
+    from qualivault.pipeline import prepare_audio_and_analyze, transcribe_recipe
+    from qualivault.state import RunState
+
+    project_dir, config = _load_project(project_name)
+    if config.get("suppress_warnings", True):
+        warnings.filterwarnings("ignore")
+    setup_environment()
+    recipe_path = project_dir / "processing_recipe.yaml"
+
+    prepare_audio_and_analyze(project_root=project_dir, config=config, recipe_path=recipe_path, resume=True)
+    for attempt in range(1, attempts + 1):
+        try:
+            transcribe_recipe(project_root=project_dir, config=config, recipe_path=recipe_path, resume=True)
+        except Exception as e:
+            print(f"❌ Transcription attempt {attempt} crashed: {e}")
+            continue
+        state = RunState(RunState.default_path(project_dir)).load()
+        failed = [k for k, iv in state.data.get("interviews", {}).items()
+                  if iv.get("steps", {}).get("transcribe", {}).get("status") == "failed"]
+        if not failed:
+            break
+        print(f"⚠️ Attempt {attempt}: {len(failed)} interviews failed ({failed}); retrying" if attempt < attempts else f"⚠️ Giving up on: {failed}")
+    from qualivault.export_workflow import run_export
+
+    run_export(project_dir, config)
+    print("✅ Pipeline done.")
+
+
 def main():
     parser = argparse.ArgumentParser(description="QualiVault CLI")
     parser.add_argument("--init", type=str, metavar="PROJECT_NAME", help="Initialize workspace in projects/<name>")
     parser.add_argument("--notebook", type=str, metavar="PROJECT_NAME", help="Start Jupyter Lab in project folder")
+    parser.add_argument("--run", type=str, metavar="PROJECT_NAME",
+                        help="Unattended: convert, transcribe (resume), join parts, clean, compact audio, Obsidian export")
+    parser.add_argument("--export", type=str, metavar="PROJECT_NAME",
+                        help="Only clean transcripts (+ text_corrections), compact audio and Obsidian export")
     args = parser.parse_args()
 
     if args.init:
         create_workspace(args.init)
     elif args.notebook:
         start_notebook(args.notebook)
+    elif args.run:
+        run_project(args.run)
+    elif args.export:
+        export_project(args.export)
     else:
         parser.print_help()
 

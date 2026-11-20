@@ -166,7 +166,14 @@ Open `projects/my_interview_study/config.yml`.
 *   **`speaker_map`**: Rename "SPEAKER_00" to "Interviewer" automatically.
 *   **`paths`**: Set `org_audio_folder` to where your raw audio lives.
 
-### 3. Run Notebooks
+### 3. Run unattended (no notebooks)
+
+```bash
+python -m qualivault.cli --run my_interview_study     # convert, transcribe, join parts, clean, Obsidian export
+python -m qualivault.cli --export my_interview_study  # after editing text_corrections in config.yml: re-export only
+```
+
+### 4. Run Notebooks
 Launch Jupyter Lab directly in your project folder:
 
 ```bash

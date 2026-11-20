@@ -216,7 +216,8 @@ def _repair_chunk_timestamps(chunks, audio_len_s: float, max_words_per_s: float 
         words = len(str(chunk.get("text", "")).split())
         if words and words / max(end - start, 1e-3) > max_words_per_s:
             wanted_start = end - words / typical_words_per_s
-            start = max(prev_end, min(start, wanted_start))
+            # Only ever move the start earlier, into a gap; never past the chunk's own end.
+            start = min(start, max(prev_end, wanted_start))
 
         fixed = dict(chunk)
         fixed["timestamp"] = (start, end)
@@ -1032,7 +1033,7 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
         # Merge Logic
         if should_merge:
             current_text_buffer.append(text)
-            current_end = end
+            current_end = max(current_end, end)
         else:
             if current_speaker is not None:
                 final_segments.append({

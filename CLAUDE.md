@@ -17,6 +17,8 @@ pip install -e .
 
 python -m qualivault.cli --init <project>      # scaffold projects/<project>/ (config.yml + notebooks from templates/)
 python -m qualivault.cli --notebook <project>  # jupyter lab in projects/<project>/
+python -m qualivault.cli --run <project>       # unattended: convert, transcribe (resume+retry), join parts, clean, compact audio, Obsidian export
+python -m qualivault.cli --export <project>    # only clean (+ text_corrections), compact audio, Obsidian export (minutes)
 ollama serve                                   # needed for notebook 04 (LLM transcript validation)
 ```
 
@@ -33,6 +35,8 @@ There are no tests, linter or build step. To check a change, import the module o
 4. `03_Export_Obsidian` → `core.export_recipe` (older, simple CSV→MD export).
 5. `04_Validate_Transcripts` → `validation.OllamaValidator` / `validation_workflow`: writes per-interview JSON to `validation_reports/`. Config `text_corrections` is applied here, in the notebook.
 6. `05_Export_To_Obsidian` → `obsidian_workflow.export_transcripts_to_obsidian`: the full export, with timestamps, audio links, questionnaire prefill and validation notes merged in.
+
+`export_workflow.run_export` (used by `--run`/`--export`) replaces notebooks 04 (cleaning part only, no Ollama) and 05: it rebuilds `_cleaned_for_validation/` every run (so `text_corrections` changes apply without re-transcribing), builds compact mp3s with the transcription preprocessing, and writes the vault. Changing `topic_prompt` or other transcription settings needs re-transcription: delete the interview CSVs (and `_parts/` CSVs) and run `--run` again.
 
 **Two status systems.** `pipeline.py` (the current path) tracks progress per interview and per step in `<project>/.qualivault/run_state.json` (`state.RunState`). It skips a step when its output file already exists (FLAC or CSV), so delete the output to force a rerun. The `*_status` fields in `processing_recipe.yaml` (`convert_status`, `transcribe_status`, …) come from the older `core.process_recipe` loop and are not kept in sync, so `transcribe_status: pending` in the recipe does not mean the interview is untranscribed.
 
