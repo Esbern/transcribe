@@ -232,16 +232,20 @@ def run_export(project_root: Path, config: Dict[str, Any], *, target_speaker: st
     audio_sub = paths.get("compact_audio_folder", "compact_audio")
 
     cleaned = clean_transcripts(transcripts_dir, config.get("text_corrections") or {})
+    # paths.compact_audio_bitrate: mp3 bitrate; the audio is 16 kHz mono speech, so 32k is plenty.
+    # paths.compact_audio_in_git: true when the vault repo stores the mp3s (e.g. via Git LFS);
+    # otherwise the folder is added to the vault's .gitignore.
     n = build_compact_audio(
         _resolve(project_root, paths["flac_output_folder"]),
         vault / audio_sub,
         config.get("transcription", {}).get("preprocessing", {}),
+        bitrate=str(paths.get("compact_audio_bitrate", "96k")),
     )
     logger.info(f"🎧 Compact audio: {n} mp3 written")
 
     gitignore = vault / ".gitignore"
     existing = gitignore.read_text(encoding="utf-8") if gitignore.exists() else ""
-    if f"{audio_sub}/" not in existing.splitlines():
+    if not paths.get("compact_audio_in_git", False) and f"{audio_sub}/" not in existing.splitlines():
         gitignore.write_text(existing + ("" if not existing or existing.endswith("\n") else "\n") + f"{audio_sub}/\n", encoding="utf-8")
 
     questionnaire = paths.get("questionnaire_csv_path")
