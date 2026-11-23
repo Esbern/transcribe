@@ -20,20 +20,20 @@ Pick the environment that matches your hardware and transcription backend prefer
 
 **Option A: Mac (Apple Silicon, MPS) — Transformers Whisper (default):**
 ```bash
-conda create -f environment_mac.yml
+conda env create -f environment_mac.yml
 conda activate qualivault
 ```
 
 **Option B: Windows/Linux (NVIDIA CUDA) — Transformers Whisper (default):**
 ```bash
-conda create -f environment_cuda.yml
+conda env create -f environment_cuda.yml
 conda activate qualivault
 pip uninstall -y torchcodec
 ```
 
 **Option C: Windows/Linux (NVIDIA CUDA) — WhisperX (fastest):**
 ```bash
-conda create -f environment_cuda.yml
+conda env create -f environment_cuda.yml
 conda activate qualivault
 pip uninstall -y torchcodec
 pip install whisperx
@@ -50,7 +50,7 @@ pip install whisperx
 
 **Option D: CPU-only (any OS) — faster-whisper (lightweight):**
 ```bash
-conda create -f environment_cpu.yml
+conda env create -f environment_cpu.yml
 conda activate qualivault
 ```
 
@@ -134,14 +134,19 @@ python -m qualivault.cli --init my_interview_study
 
 This creates:
 *   `projects/my_interview_study/config.yml`
-*   `projects/my_interview_study/notebooks/`
-*   `projects/my_interview_study/.gitignore` (excludes audio files)
+*   `projects/my_interview_study/notebooks/` (00–05, already set to this project's name)
+*   `projects/my_interview_study/.env` (for `HF_TOKEN`)
+*   `projects/my_interview_study/.gitignore` (excludes `.env` and audio files)
+
+**Audio layout:** one folder per interview inside `paths.org_audio_folder`, named `<name>_<id>` (e.g. `Hansen_12`). Notebook `00_Setup_and_Scan` scans the folders, writes `processing_recipe.yaml` and checks it (duplicate ids, missing files, …). Fill in `speakers` for each interview in the recipe before running `01_Prepare_Audio`.
+
+**Several audio files in one folder** (a new room or recording device) become separate parts (`id: 12-1`, `12-2`, …). Each part is calibrated, diarized and transcribed on its own; afterwards the part transcripts (in `<output_base_folder>/_parts/`) are joined into one `Interview_<id>.csv`, with speakers matched across parts by voice embedding. The Obsidian note gets one section per part, each with its own recording.
 
 ### 2. Configure
 Open `projects/my_interview_study/config.yml`.
 
 **Key Settings:**
-*   **`hf_token`**: Your Hugging Face token (required for Pyannote diarization).
+*   **Hugging Face token** (required for Pyannote diarization): put `HF_TOKEN=hf_...` in the project's `.env` file (created by `--init`, git-ignored). `hf_token` in `config.yml` still works but would be committed to the project's git repo.
 *   **`transcription`**:
     *   `backend`: `auto` (recommended), `whisperx` (CUDA), or `transformers`.
     *   CPU-only fallback: `faster_whisper`
@@ -161,8 +166,16 @@ Open `projects/my_interview_study/config.yml`.
 *   **`speaker_map`**: Rename "SPEAKER_00" to "Interviewer" automatically.
 *   **`paths`**: Set `org_audio_folder` to where your raw audio lives.
 
-### 3. Run Notebooks
+### 3. Run unattended (no notebooks)
+
+```bash
+python -m qualivault.cli --run my_interview_study     # convert, transcribe, join parts, clean, Obsidian export
+python -m qualivault.cli --export my_interview_study  # after editing text_corrections in config.yml: re-export only
+```
+
+### 4. Run Notebooks
 Launch Jupyter Lab directly in your project folder:
 
 ```bash
 python -m qualivault.cli --notebook my_interview_study
+```

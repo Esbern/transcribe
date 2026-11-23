@@ -59,13 +59,11 @@ class RunState:
             json.dump(self.data, f, indent=2, ensure_ascii=False)
 
         # On Windows, AV/indexers can briefly lock either file and make atomic replace fail.
-        last_err: Optional[BaseException] = None
         for _ in range(5):
             try:
                 os.replace(tmp, self.state_path)
                 return
-            except PermissionError as e:
-                last_err = e
+            except PermissionError:
                 time.sleep(0.05)
 
         # Fallback: write directly to destination if replace keeps failing.

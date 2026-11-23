@@ -1,7 +1,9 @@
 project_name: "{{PROJECT_NAME}}"
 
-# Hugging Face Token (Required for Pyannote/Diarization)
-# Leave empty if models are cached or you are logged in via CLI.
+# Hugging Face token (required for pyannote diarization).
+# Leave this empty and put the token in the project's .env file instead:
+#   HF_TOKEN=hf_...
+# .env is git-ignored, so the token never ends up in the project's git history.
 hf_token: ""
 
 # Suppress technical warnings (DeprecationWarning, FutureWarning) to keep output clean
@@ -45,8 +47,14 @@ transcription:
 
   # Diarization controls. Lower max_speakers can stabilize rough two-person interviews.
   diarization:
+    # Where the speaker count comes from:
+    # - recipe: use the recipe's per-interview 'speakers' as the exact count
+    # - config: use min_speakers / max_speakers below
+    # - auto:   use the recipe 'speakers' according to speakers_policy (falls back to min/max)
+    speaker_count_source: "auto"
     min_speakers: 2
     max_speakers:
+    # (used when speaker_count_source is auto)
     # strict: use recipe 'speakers' exactly when present
     # bounded: use recipe 'speakers' as min and allow +1
     speakers_policy: "strict"
@@ -103,11 +111,15 @@ paths:
 text_corrections: {}
 
 patterns:
-  # Regex to extract an ID from the folder name (e.g., "Session_101" -> "101")
-  folder_id_regex: ".*(?P<id>\\d+).*"
+  # One folder per interview, named <name>_<id>, e.g. "Hansen_12" -> id "12".
+  # The id is the number after the LAST underscore. If a folder holds several audio files
+  # (matching target_audio_regex), each file becomes its own part (id "12-1", "12-2", ...):
+  # it is calibrated and diarized separately, and the transcripts are joined afterwards.
+  folder_id_regex: "_(?P<id>\\d+)$"
   
   # Regex to identify ALL audio files (for auditing/checking)
   all_audio_regex: ".*\\.(wav|mp3|m4a|flac)$"
 
-  # Regex to identify TARGET audio files to process (e.g. specific recorder suffix)
-  target_audio_regex: ".*Trlr\\.wav$"
+  # Regex to identify TARGET audio files to process. Narrow this if the recorder
+  # writes several versions of the same recording (e.g. ".*TrLR\\.wav$" for Tascam stereo).
+  target_audio_regex: ".*\\.(wav|mp3|m4a|flac)$"

@@ -180,6 +180,94 @@ def _split_chunks_by_diarization(chunks, diarization=None, precomputed_turns=Non
     return split_chunks
 
 
+def _repair_chunk_timestamps(chunks, audio_len_s: float, max_words_per_s: float = 4.0, typical_words_per_s: float = 2.5):
+    """Fix Whisper chunk timestamps that would otherwise lose or misplace text.
+
+    Timestamps are relative to the decoded audio (length `audio_len_s`).
+
+    - Missing end (Whisper "did not predict an ending timestamp", typically the last chunk of
+      a window): use the next chunk's start, or the end of the audio. Previously end=start,
+      which made the chunk zero-length and it was silently dropped.
+    - Missing start: previous chunk's end (or 0).
+    - Collapsed timestamps (e.g. a minute of speech stamped as 0.35 s): if a chunk is faster
+      than `max_words_per_s`, move its start back into the preceding gap so it covers the
+      text at `typical_words_per_s`. The text is kept either way; this keeps its timing (and
+      therefore its speaker attribution) plausible.
+    """
+    out = []
+    n = len(chunks)
+    prev_end = 0.0
+    for i, chunk in enumerate(chunks):
+        ts = chunk.get("timestamp") or (None, None)
+        start, end = ts if isinstance(ts, (tuple, list)) and len(ts) == 2 else (None, None)
+        start = prev_end if start is None else float(start)
+        if end is None:
+            nxt = None
+            for later in chunks[i + 1:]:
+                lts = later.get("timestamp") or (None, None)
+                if lts and lts[0] is not None:
+                    nxt = float(lts[0])
+                    break
+            end = nxt if (nxt is not None and nxt > start) else audio_len_s
+        end = float(end)
+        if end <= start:
+            end = min(audio_len_s, start + 0.5) if start < audio_len_s else start + 0.5
+
+        words = len(str(chunk.get("text", "")).split())
+        if words and words / max(end - start, 1e-3) > max_words_per_s:
+            wanted_start = end - words / typical_words_per_s
+            # Only ever move the start earlier, into a gap; never past the chunk's own end.
+            start = min(start, max(prev_end, wanted_start))
+
+        fixed = dict(chunk)
+        fixed["timestamp"] = (start, end)
+        out.append(fixed)
+        prev_end = max(prev_end, end)
+    return out
+
+
+def _norm_word(w: str) -> str:
+    return re.sub(r"[^\w]", "", w.lower())
+
+
+def _trim_boundary_repeat(prev_chunk, next_text: str, min_run: int = 5, tail_words: int = 60, head_words: int = 60):
+    """Remove text at the end of `prev_chunk` that the next window transcribed again.
+
+    Adjacent ASR windows overlap, and a window's last chunk can run into the overlap, so the
+    same speech may appear at the end of one window and the start of the next (often worded
+    slightly differently). Finds the longest run of >= `min_run` identical (normalised) words
+    shared by the tail of `prev_chunk` and the head of `next_text`, and cuts `prev_chunk`
+    from the start of that run. Returns the trimmed chunk, or None if nothing is left.
+    """
+    words = str(prev_chunk.get("text", "")).split()
+    nxt = [_norm_word(w) for w in str(next_text).split()[:head_words]]
+    if len(words) < min_run or len(nxt) < min_run:
+        return prev_chunk
+    offset = max(0, len(words) - tail_words)
+    tail = [_norm_word(w) for w in words[offset:]]
+    best_len, best_i = 0, -1
+    prev_row = [0] * (len(nxt) + 1)
+    for i in range(1, len(tail) + 1):
+        row = [0] * (len(nxt) + 1)
+        for j in range(1, len(nxt) + 1):
+            if tail[i - 1] and tail[i - 1] == nxt[j - 1]:
+                row[j] = prev_row[j - 1] + 1
+                if row[j] > best_len:
+                    best_len, best_i = row[j], i - row[j]
+        prev_row = row
+    if best_len < min_run:
+        return prev_chunk
+    cut = offset + best_i
+    kept = words[:cut]
+    if not kept:
+        return None
+    trimmed = dict(prev_chunk)
+    start, end = trimmed["timestamp"]
+    trimmed["text"] = " ".join(kept)
+    trimmed["timestamp"] = (start, start + (end - start) * len(kept) / len(words))
+    return trimmed
+
+
 def _chunk_overlaps_speech(start_s: float, end_s: float, speech_segments) -> bool:
     if end_s <= start_s:
         return False
@@ -189,6 +277,24 @@ def _chunk_overlaps_speech(start_s: float, end_s: float, speech_segments) -> boo
         if min(end_s, s1) > max(start_s, s0):
             return True
     return False
+
+def get_hf_token(config=None, project_root=None):
+    """Hugging Face token: config.yml `hf_token`, else HF_TOKEN from <project_root>/.env or the environment.
+
+    Keeping the token in a git-ignored `.env` file stops it ending up in the project's git history.
+    """
+    token = (config or {}).get("hf_token")
+    if token:
+        return token
+    try:
+        from dotenv import load_dotenv
+
+        if project_root is not None:
+            load_dotenv(Path(project_root) / ".env", override=False)
+    except ImportError:
+        pass
+    return os.environ.get("HF_TOKEN") or None
+
 
 def setup_environment():
     """
@@ -206,9 +312,9 @@ def setup_environment():
     
     if os.path.exists(config_path):
         try:
-            with open(config_path, "r") as f:
+            with open(config_path, "r", encoding="utf-8") as f:
                 config = yaml.safe_load(f)
-                hf_token = config.get("hf_token")
+                hf_token = get_hf_token(config, Path(config_path).parent)
                 
                 # Suppress warnings if configured
                 if config.get("suppress_warnings", True):
@@ -233,7 +339,7 @@ def setup_environment():
         except Exception as e:
             logger.error(f"❌ Authentication failed: {e}")
     else:
-        logger.info("ℹ️ No HF_TOKEN found in config.yml. Proceeding (models must be cached or public).")
+        logger.info("ℹ️ No HF token found (config.yml hf_token, .env or HF_TOKEN). Proceeding (models must be cached or public).")
 
     # 3. Device Detection
     device = get_device()
@@ -266,10 +372,12 @@ def init_git_project(project_root="."):
 .ipynb_checkpoints/
 __pycache__/
 *.wav
+*.WAV
 *.mp3
 *.m4a
 *.flac
 audio_input/
+.env
 """
     with open(project_root / ".gitignore", "w") as f:
         f.write(gitignore_content.strip())
@@ -325,16 +433,20 @@ def process_recipe(recipe_path, flac_dir, output_dir, config=None, hf_token=None
         logger.error(f"❌ Recipe file not found: {recipe_path}")
         return
 
-    with open(recipe_path, 'r') as f:
+    with open(recipe_path, 'r', encoding='utf-8') as f:
         recipe = yaml.safe_load(f)
 
     # Initialize Models
     device = get_device()
     transcription_config = config.get("transcription", {}) if config else {}
-    transcriber = Transcriber(device=device, cache_dir=cache_dir, config=transcription_config)
-    
+    transcriber = Transcriber(
+        device=device,
+        model_id=transcription_config.get("model_id", "openai/whisper-large-v3"),
+        cache_dir=cache_dir,
+        config=transcription_config,
+    )
+
     # Prepare Transcription Settings
-    language = "da"
     prompt_ids = None
     language = transcription_config.get("language", "da")
     topic_prompt = transcription_config.get("topic_prompt")
@@ -444,21 +556,21 @@ def process_recipe(recipe_path, flac_dir, output_dir, config=None, hf_token=None
                 item['last_good_status'] = 'transcribed'
                 item['transcript_path'] = str(csv_path)
                 updated = True
-                with open(recipe_path, 'w') as f:
-                    yaml.dump(recipe, f, sort_keys=False)
+                with open(recipe_path, 'w', encoding='utf-8') as f:
+                    yaml.safe_dump(recipe, f, sort_keys=False, allow_unicode=True)
         except Exception as e:
             logger.error(f"❌ Failed processing {item['output_name']}: {e}")
             item['transcribe_status'] = 'error'
             item['status'] = 'error'
             item['error_msg'] = str(e)
             updated = True
-            with open(recipe_path, 'w') as f:
-                yaml.dump(recipe, f, sort_keys=False)
+            with open(recipe_path, 'w', encoding='utf-8') as f:
+                yaml.safe_dump(recipe, f, sort_keys=False, allow_unicode=True)
             continue
 
     if updated:
-        with open(recipe_path, 'w') as f:
-            yaml.dump(recipe, f, sort_keys=False)
+        with open(recipe_path, 'w', encoding='utf-8') as f:
+            yaml.safe_dump(recipe, f, sort_keys=False, allow_unicode=True)
         logger.info("✅ Recipe updated.")
 
 def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, language="da", prompt_ids=None):
@@ -468,6 +580,11 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
     if not audio_path.exists():
         logger.error(f"❌ File not found: {audio_path}")
         return None
+
+    if diarization_pipeline is None:
+        raise RuntimeError(
+            "No diarization pipeline: the transformers backend needs pyannote, so set HF_TOKEN in the project's .env file."
+        )
 
     logger.info(f"🚀 Processing: {filename}")
     
@@ -667,6 +784,8 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
 
             # Transcribe Chunk
             res = transcriber.transcribe(y_chunk, language=language, prompt_ids=prompt_ids)
+            if res and 'chunks' in res:
+                res['chunks'] = _repair_chunk_timestamps(res['chunks'], len(y_chunk) / 16000.0)
 
             # Adjust timestamps to be absolute
             if res and 'chunks' in res:
@@ -684,6 +803,8 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
         # Match tuning notebook behavior: decode a continuous waveform for better context,
         # then keep only chunks that overlap diarized speech.
         res = transcriber.transcribe(str(temp_wav), language=language, prompt_ids=prompt_ids)
+        if res and 'chunks' in res:
+            res['chunks'] = _repair_chunk_timestamps(res['chunks'], float(sf.info(str(temp_wav)).duration))
         if res and 'chunks' in res:
             for chunk in res['chunks']:
                 start_abs, end_abs = chunk['timestamp']
@@ -759,9 +880,12 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
 
             res = transcriber.transcribe(y_win, language=language, prompt_ids=prompt_ids)
             if res and 'chunks' in res:
+                res['chunks'] = _repair_chunk_timestamps(res['chunks'], len(y_win) / 16000.0)
+            if res and 'chunks' in res:
                 # Keep only the center region for non-edge windows to reduce overlap duplicates.
                 keep_start = win_start + (overlap_s / 2.0 if win_start > 0.0 else 0.0)
                 keep_end = win_end - (overlap_s / 2.0 if win_end < total_duration_s else 0.0)
+                first_new = len(transcript_chunks)
 
                 for chunk in res['chunks']:
                     start_rel, end_rel = chunk['timestamp']
@@ -789,6 +913,15 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
 
                     chunk['timestamp'] = (start_abs, end_abs)
                     transcript_chunks.append(chunk)
+
+                # De-duplicate speech transcribed by both this window and the previous one.
+                if 0 < first_new < len(transcript_chunks):
+                    head = " ".join(str(c.get("text", "")) for c in transcript_chunks[first_new:first_new + 2])
+                    trimmed = _trim_boundary_repeat(transcript_chunks[first_new - 1], head)
+                    if trimmed is None:
+                        del transcript_chunks[first_new - 1]
+                    else:
+                        transcript_chunks[first_new - 1] = trimmed
 
             logger.info(f"   ✅ ASR window {idx}/{total_windows} completed")
 
@@ -900,7 +1033,7 @@ def process_item(item, flac_dir, output_dir, transcriber, diarization_pipeline, 
         # Merge Logic
         if should_merge:
             current_text_buffer.append(text)
-            current_end = end
+            current_end = max(current_end, end)
         else:
             if current_speaker is not None:
                 final_segments.append({
@@ -957,8 +1090,7 @@ class Transcriber:
         self.config = config or {}
         self.device = device if device else get_device()
         
-        # Mac MPS does not support float16 for all ops yet, so we use float32 for safety on Mac
-        # CUDA uses float16 for speed. MPS can use float16 for memory saving if supported.
+        # float16 on GPU backends (CUDA, MPS) for speed and memory; float32 on CPU.
         self.torch_dtype = torch.float16 if self.device in ["cuda", "mps"] else torch.float32
         
         logger.info(f"⏳ Loading Model: {model_id} on {self.device.upper()}...")
@@ -1122,7 +1254,7 @@ def export_recipe(recipe_path, output_dir, config=None):
         logger.error(f"❌ Recipe not found: {recipe_path}")
         return
 
-    with open(recipe_path, 'r') as f:
+    with open(recipe_path, 'r', encoding='utf-8') as f:
         recipe = yaml.safe_load(f)
         
     logger.info(f"📂 Exporting to: {obsidian_dir}")

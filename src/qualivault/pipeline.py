@@ -10,8 +10,17 @@ from typing import Any, Dict, List, Optional
 import torch
 
 from qualivault.audio import analyze_channel_separation, prepare_audio
-from qualivault.core import Transcriber, _flush_gpu_memory, get_device, process_item
-from qualivault.recipe import expected_csv_name, expected_flac_name, interview_key, load_recipe, save_recipe
+from qualivault.parts import merge_part_transcripts, parts_dir
+from qualivault.core import Transcriber, _flush_gpu_memory, get_device, get_hf_token, process_item
+from qualivault.recipe import (
+    assert_recipe_ok,
+    check_recipe,
+    expected_csv_name,
+    expected_flac_name,
+    interview_key,
+    load_recipe,
+    save_recipe,
+)
 from qualivault.state import RunState
 
 logger = logging.getLogger("QualiVault")
@@ -40,6 +49,12 @@ def _resolve_recipe_files(files: List[str], org_audio_folder: Optional[Path]) ->
             p = org_audio_folder / p
         resolved.append(str(p))
     return resolved
+
+
+def _ctranslate2_model_name(model_id: str) -> str:
+    """WhisperX / faster-whisper take short names ("large-v3"), not HF ids ("openai/whisper-large-v3")."""
+    prefix = "openai/whisper-"
+    return model_id[len(prefix):] if model_id.startswith(prefix) else model_id
 
 
 def _init_pyannote_pipeline(hf_token: Optional[str], device: str, cache_dir: Optional[Path] = None):
@@ -93,7 +108,7 @@ def _transcribe_with_whisperx(
     whisperx = importlib.import_module("whisperx")
 
     compute_type = "float16" if device == "cuda" else "int8"
-    model = whisperx.load_model(model_id, device, compute_type=compute_type)
+    model = whisperx.load_model(_ctranslate2_model_name(model_id), device, compute_type=compute_type)
     result = model.transcribe(str(audio_path), language=language)
 
     segments = result.get("segments", [])
@@ -150,7 +165,7 @@ def _transcribe_with_faster_whisper(
 
     fw_device = "cuda" if device == "cuda" else "cpu"
     compute_type = "float16" if fw_device == "cuda" else "int8"
-    model = WhisperModel(model_id, device=fw_device, compute_type=compute_type)
+    model = WhisperModel(_ctranslate2_model_name(model_id), device=fw_device, compute_type=compute_type)
 
     segments, _info = model.transcribe(str(audio_path), language=language)
 
@@ -198,7 +213,10 @@ def prepare_audio_and_analyze(
     models_dir = config.get("paths", {}).get("models_folder")
     cache_dir = (project_root / models_dir).resolve() if models_dir else None
 
-    hf_token = config.get("hf_token")
+    recipe = load_recipe(recipe_path)
+    assert_recipe_ok(recipe, org_audio_folder)
+
+    hf_token = get_hf_token(config, project_root)
     device = get_device()
 
     state = RunState(RunState.default_path(project_root)).load()
@@ -211,7 +229,6 @@ def prepare_audio_and_analyze(
             logger.warning(f"⚠️ Could not initialize pyannote (speaker counting disabled): {e}")
             diarization_pipe = None
 
-    recipe = load_recipe(recipe_path)
     if max_items is not None:
         recipe = recipe[:max_items]
 
@@ -306,7 +323,7 @@ def transcribe_recipe(
     models_dir = config.get("paths", {}).get("models_folder")
     cache_dir = (project_root / models_dir).resolve() if models_dir else None
 
-    hf_token = config.get("hf_token")
+    hf_token = get_hf_token(config, project_root)
     device = get_device()
 
     state = RunState(RunState.default_path(project_root)).load()
@@ -321,15 +338,25 @@ def transcribe_recipe(
     if backend == "auto":
         # CUDA: prefer WhisperX (fast, strong) if installed; otherwise transformers.
         # Non-CUDA: default to transformers (MPS/CPU).
-        backend = "whisperx" if device == "cuda" else "transformers"
+        import importlib.util
+
+        whisperx_installed = importlib.util.find_spec("whisperx") is not None
+        backend = "whisperx" if device == "cuda" and whisperx_installed else "transformers"
+        logger.info(f"🔀 Backend auto-selected: {backend}")
+
+    recipe = load_recipe(recipe_path)
+    recipe_errors, _ = check_recipe(recipe)  # structural checks only; sources were checked in prepare
+    if recipe_errors:
+        raise ValueError("Recipe problems (fix processing_recipe.yaml first):\n  - " + "\n  - ".join(recipe_errors))
 
     diarization_pipe = None
     transcriber = None
     if backend == "transformers":
+        if not hf_token:
+            raise ValueError("The transformers backend needs pyannote diarization: set HF_TOKEN in the project's .env file.")
         diarization_pipe = _init_pyannote_pipeline(hf_token, device=device, cache_dir=cache_dir)
         transcriber = _init_transcriber(config, device=device, cache_dir=cache_dir)
 
-    recipe = load_recipe(recipe_path)
     if max_items is not None:
         recipe = recipe[:max_items]
 
@@ -341,7 +368,10 @@ def transcribe_recipe(
         csv_name = expected_csv_name(item)
 
         flac_path = flac_dir / flac_name
-        csv_path = output_dir / csv_name
+        # Parts of a multi-file interview go to _parts/ and are joined after transcription.
+        item_output_dir = parts_dir(output_dir) if item.get("part") else output_dir
+        item_output_dir.mkdir(parents=True, exist_ok=True)
+        csv_path = item_output_dir / csv_name
 
         if resume and csv_path.exists():
             # Migration-friendly: existing transcript counts as success even if state is new.
@@ -412,7 +442,7 @@ def transcribe_recipe(
                 out_csv = process_item(
                     item_local,
                     flac_dir=flac_dir,
-                    output_dir=output_dir,
+                    output_dir=item_output_dir,
                     transcriber=transcriber,
                     diarization_pipeline=diarization_pipe,
                     language=language,
@@ -435,4 +465,18 @@ def transcribe_recipe(
 
     logger.info("=" * 70)
     logger.info(f"✅ Transcription complete. Done: {done}, Skipped: {skipped}, Failed: {failed}")
+
+    # Join multi-file interviews whose parts are all transcribed. Uses the project's master
+    # recipe, so it also works when `recipe_path` is a selected subset.
+    master_recipe = project_root / "processing_recipe.yaml"
+    try:
+        merge_part_transcripts(
+            project_root=project_root,
+            config=config,
+            recipe_path=master_recipe if master_recipe.exists() else recipe_path,
+            hf_token=hf_token,
+            device=device,
+        )
+    except Exception as e:
+        logger.error(f"❌ Joining part transcripts failed: {e}")
     logger.info(f"📍 State file: {state.state_path}")

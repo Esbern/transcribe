@@ -379,6 +379,10 @@ def export_transcripts_to_obsidian(
 
         try:
             df = pd.read_csv(csv_path)
+            # Empty Whisper output reads back as NaN, which would render as the literal text "nan".
+            df["Text"] = df["Text"].fillna("") if "Text" in df.columns else ""
+            df["Speaker"] = df["Speaker"].fillna("Unknown") if "Speaker" in df.columns else "Unknown"
+            df["Start"] = pd.to_numeric(df["Start"], errors="coerce").fillna(0.0) if "Start" in df.columns else 0.0
         except pd.errors.EmptyDataError:
             print(f"⚠️ Skipping empty CSV: {csv_path.name}")
             skipped += 1
@@ -388,7 +392,15 @@ def export_transcripts_to_obsidian(
             skipped += 1
             continue
 
-        audio_name = find_audio_file(base, audio_vault_dir)
+        # Joined multi-file interview (parts.merge_part_transcripts): one section per part,
+        # each with its own recording; timestamps are relative to that part's audio.
+        multipart = "Audio" in df.columns and df["Audio"].nunique() > 1
+
+        def _part_audio_rel(stem: str) -> Optional[str]:
+            name = f"{stem}.mp3" if (audio_vault_dir / f"{stem}.mp3").exists() else find_audio_file(stem, audio_vault_dir)
+            return f"{compact_audio_subfolder}/{name}" if name else None
+
+        audio_name = None if multipart else find_audio_file(base, audio_vault_dir)
         audio_rel_path = f"{compact_audio_subfolder}/{audio_name}" if audio_name else None
         # Keep timestamp links clickable even when matching fails by using a stable fallback filename.
         audio_rel_path_for_links = audio_rel_path or f"{compact_audio_subfolder}/{base}.mp3"
@@ -426,7 +438,17 @@ def export_transcripts_to_obsidian(
 
         lines.append("# Transcript\n")
 
+        current_audio = None
         for idx, row in df.iterrows():
+            if multipart and row.get("Audio") != current_audio:
+                current_audio = str(row.get("Audio"))
+                part_rel = _part_audio_rel(current_audio)
+                audio_rel_path_for_links = part_rel or f"{compact_audio_subfolder}/{current_audio}.mp3"
+                lines.append(f"## Del {row.get('Part', '')}")
+                if part_rel:
+                    lines.append(f"![[{part_rel}]]")
+                lines.append("_Timestamps in this section refer to this part's recording. Speaker labels are matched across parts automatically; check them at the start of each part._\n")
+
             speaker = str(row.get("Speaker", "Unknown"))
             text = str(row.get("Text", ""))
             start = float(row.get("Start", 0))
@@ -527,7 +549,7 @@ def export_transcripts_to_obsidian(
             skipped += 1
             continue
 
-        audio_status = "🎧" if audio_rel_path else "⚠️ "
+        audio_status = "🎧" if (audio_rel_path or multipart) else "⚠️ "
         val_count = len(flagged_segments)
         val_status = f"✅({val_count})" if val_count > 0 else "  "
         print(f"{audio_status} {val_status} {out_path.name}")
