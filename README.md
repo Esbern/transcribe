@@ -179,3 +179,7 @@ Launch Jupyter Lab directly in your project folder:
 ```bash
 python -m qualivault.cli --notebook my_interview_study
 ```
+
+### 5. Validate and code with students
+
+The finished vault can go into a GitLab project where student assistants validate and code one interview each on their own branch. See [`coding/README.md`](coding/README.md): there is one guide for RUC's `interview-projects` group and one for building the same setup elsewhere.

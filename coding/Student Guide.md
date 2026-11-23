@@ -1,8 +1,11 @@
-# Student Guide – Coding the Hakan Interviews
+# Student Guide – Validating and Coding Interviews
 
 You will validate and code interview transcripts in **Obsidian**. Your work is saved to the
 university's GitLab server (**git.ruc.dk**). You work on **one interview at a time**: your
 vault only contains that interview, its recording and the codebook.
+
+New to Git? Read the short **[Git Introduction](Git%20Introduction.md)** first: it explains
+what happens behind the scenes (commits, branches, syncing) without any programming.
 
 ---
 
@@ -19,7 +22,7 @@ The interviews contain personal information about real people. Before you start:
 
 ### 2. Install the programs
 
-- **Obsidian** – [obsidian.md](https://obsidian.md)
+- **Obsidian** (latest version) – [obsidian.md](https://obsidian.md)
 - **Git** – Windows: [git-scm.com](https://git-scm.com) (includes Git LFS, which downloads the audio).
   Mac: we install Git and Git LFS together at the session.
 
@@ -27,7 +30,7 @@ The interviews contain personal information about real people. Before you start:
 
 1. Go to **[git.ruc.dk](https://git.ruc.dk)** and log in with your normal RUC login.
 2. Send your **GitLab username** (top-right icon) to the researcher. You will then be given access
-   to the Hakan project.
+   to the project.
 
 ### 4. Create your access token
 
@@ -38,7 +41,7 @@ Obsidian uses a *token* instead of your password.
 
    | Field | Value |
    |---|---|
-   | Token name | `obsidian-hakan` |
+   | Token name | `obsidian` |
    | Expiration date | the end date of your contract |
    | Scopes | tick **only** `write_repository` |
 
@@ -47,34 +50,40 @@ Obsidian uses a *token* instead of your password.
 
 ### 5. Download your first interview
 
-The researcher tells you which interview to start with, e.g. `Interview_7`.
+The researcher gives you the exact command, which looks like this:
 
-1. Open **Terminal** (Mac) or **Git Bash** (Windows).
-2. Paste this, replacing `Interview_7` with your interview:
+```bash
+git clone --branch interview-Interview_7 https://git.ruc.dk/interview-projects/<project>/<project>.git Interviews
+```
+
+1. Open **Terminal** (Mac) or **Git Bash** (Windows) and paste the command.
+2. When asked, type your **GitLab username**, and paste your **token** as the password.
+   (Nothing appears while you paste – that is normal.) Your computer remembers it.
+3. Then run, and answer the two questions (your name and RUC e-mail):
 
    ```bash
-   git clone --branch interview-Interview_7 https://git.ruc.dk/interview-projects/hakan/hakan.git Hakan
+   cd Interviews
+   bash .tools/student_laptop_setup.sh
    ```
-
-3. When asked, type your **GitLab username**, and paste your **token** as the password.
-   (Nothing appears while you paste – that is normal.) Your computer remembers it.
-4. The researcher then runs a few settings commands with you, including your name for the history.
 
 ### 6. Open the vault in Obsidian
 
-1. Obsidian → **Open folder as vault** → choose the `Hakan` folder.
+1. Obsidian → **Open folder as vault** → choose the `Interviews` folder.
 2. When Obsidian asks, click **Trust author and enable plugins**.
 
 ---
 
 ## Part 2 – For each interview
 
+All commands below are run from the **command palette**: press `Ctrl+P` (Windows) / `Cmd+P` (Mac)
+and start typing the name.
+
 ### Start
 
 1. **GitLab Issue Board:** find the issue for your interview and drag it to **Doing**.
-2. **Obsidian:** press `Ctrl+P` (Windows) / `Cmd+P` (Mac) and run:
+2. **Obsidian** – only for your *second and later* interviews:
    - `Obsidian Git: Pull`
-   - `Obsidian Git: Switch branch` → choose `interview-<your interview>`, e.g. `interview-Interview_7`
+   - `Obsidian Git: Switch to remote branch` → choose `origin/interview-<your interview>`
 3. Your vault now shows only this interview:
 
    | Folder | What it is | May you change it? |
@@ -82,7 +91,7 @@ The researcher tells you which interview to start with, e.g. `Interview_7`.
    | `01_Raw_Transcripts` | The original AI transcript – for looking back | ❌ No |
    | `02_Coding_In_Progress` | **Your working copy** | ✅ Yes |
    | `compact_audio` | The recording | ❌ No |
-   | Codebook / tags | The agreed tags | ❌ No |
+   | `Tags` | The codebook | ❌ No |
 
 ### Step 1 – Validate (correct the transcript)
 
@@ -96,21 +105,23 @@ Work in the file in **`02_Coding_In_Progress`**.
 
 ### Step 2 – Code
 
-- Tag passages using the codebook.
+- Tag passages using the codebook in `Tags`.
 - **Need a new tag?** Use it right away with the prefix `#new/`, e.g. `#new/trust`, **and** create a
   GitLab issue with the `new_tag_proposal` template. Do not edit the codebook yourself.
 
 ### Saving
 
-Your work is saved and uploaded automatically while Obsidian is open and **when you close
-Obsidian**. Close Obsidian when you stop for the day.
+Your work is uploaded automatically about 2 minutes after you stop typing.
+
+**When you stop working, always run `Obsidian Git: Commit-and-sync and then close Obsidian`.**
+Closing Obsidian the normal way does *not* upload your last changes.
 
 ### Finish
 
-1. Close Obsidian (this uploads your last changes).
-2. **GitLab Issue Board:** drag your issue to **Review-Needed** and comment *"Finished"*.
-3. When you get your next interview, start again at **Part 2 – Start**. The previous interview and
-   its recording disappear from your laptop automatically.
+1. Run `Obsidian Git: Commit-and-sync and then close Obsidian`.
+2. **GitLab Issue Board:** drag your issue to **Review-Needed** and tick the checklist.
+3. For your next interview, start again at **Part 2 – Start**. The previous interview and its
+   recording disappear from your laptop automatically.
 
 ---
 
