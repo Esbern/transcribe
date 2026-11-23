@@ -106,6 +106,14 @@ paths:
   # Where should the transcripts and analysis go?
   output_base_folder: "./output"
 
+  # Obsidian vault written by --run / --export (and notebook 05)
+  obsidian_vault_folder: "./obsidian_vault"
+  compact_audio_folder: "compact_audio"
+  # Folder inside the vault for the notes; "01_Raw_Transcripts" for the coding workflow in coding/
+  obsidian_notes_subfolder: ""
+  # compact_audio_bitrate: "32k"     # mp3 bitrate for the vault audio
+  # compact_audio_in_git: true       # vault repo stores the mp3s (Git LFS) instead of ignoring them
+
 # Domain-specific transcript corrections applied during cleaning/export.
 # Format: wrong_form: correct_form
 text_corrections: {}

@@ -230,6 +230,9 @@ def run_export(project_root: Path, config: Dict[str, Any], *, target_speaker: st
     transcripts_dir = _resolve(project_root, paths["output_base_folder"])
     vault = _resolve(project_root, paths.get("obsidian_vault_folder", str(project_root / "obsidian_vault")))
     audio_sub = paths.get("compact_audio_folder", "compact_audio")
+    # paths.obsidian_notes_subfolder: where notes go inside the vault (e.g. "01_Raw_Transcripts"
+    # in a vault set up for coding). Audio links stay relative to the vault root either way.
+    notes_dir = vault / paths.get("obsidian_notes_subfolder", "")
 
     cleaned = clean_transcripts(transcripts_dir, config.get("text_corrections") or {})
     # paths.compact_audio_bitrate: mp3 bitrate; the audio is 16 kHz mono speech, so 32k is plenty.
@@ -251,7 +254,7 @@ def run_export(project_root: Path, config: Dict[str, Any], *, target_speaker: st
     questionnaire = paths.get("questionnaire_csv_path")
     export_transcripts_to_obsidian(
         transcripts_dir=cleaned,
-        output_dir=vault,
+        output_dir=notes_dir,
         obsidian_vault=vault,
         compact_audio_subfolder=audio_sub,
         target_speaker=target_speaker,
