@@ -120,6 +120,7 @@ To update a plugin later, replace its `main.js`, `manifest.json` and `styles.css
 - **Proposed Tag Name:** `#category/new-tag`
 - **Interview ID:** (e.g., Interview_04)
 - **Timestamp:** (e.g., [12:45])
+- **Researcher:** @ (type @ and pick your researcher, so they are notified)
 
 ### 💡 Context/Definition
 > [Write definition here]
@@ -132,8 +133,9 @@ To update a plugin later, replace its `main.js`, `manifest.json` and `styles.css
 - [ ] Rejected (Reason in comments)
 
 /label ~"Type::Codebook-Proposal"
-/assign @<your-gitlab-user>
 ```
+
+Don't add a fixed `/assign` here. The template is copied into every project, so all proposals would go to one person. The student mentions their researcher instead.
 
 ### 3.4 Scripts, codebook and guides
 

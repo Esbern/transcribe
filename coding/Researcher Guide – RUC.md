@@ -149,7 +149,7 @@ To read the template, the script uses the token in `templet_GIT_TOKEN` in the `.
 - **Labels** (Manage → Labels): `Doing`, `Review-Needed`, `Status::Stuck`, `Type::Codebook-Proposal`.
 - **Issue board** (Plan → Issue boards): add lists for `Doing` and `Review-Needed`.
 - **One issue per interview**, using the `default` template, titled e.g. `Interview_7`.
-- **Codebook.** Add one note per tag in `Tags/`, e.g. `Tags/Safety/Trust.md`, through a merge request. Students propose new tags with the `new_tag_proposal` issue template. That template assigns the proposal to the group owner, so change the `/assign` line in your project if you should receive them.
+- **Codebook.** Add one note per tag in `Tags/`, e.g. `Tags/Safety/Trust.md`, through a merge request. Students propose new tags with the `new_tag_proposal` issue template and mention you in it, so you are notified. Filter the issue list on the `Type::Codebook-Proposal` label to see all proposals.
 - **README.** Add a short README for students: what the project is, and the first-download command (see Hakan's README as an example).
 
 ### 3.5 One branch per interview
