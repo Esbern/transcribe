@@ -21,11 +21,19 @@ Commands (run from anywhere; --repo points at your local clone of the vault repo
                                               project on a sync-template branch -> open MR
 
 Your own working copy is never touched: all work happens in temporary git worktrees.
+
+Authentication (GitLab accepts tokens, not passwords): the script reads tokens from .env files
+(KEY=VALUE lines; the transcribe repo's root .env is always read, add more with --env-file) or
+from environment variables, and sends them only for that repo's URL:
+  RUC_GIT_token      token for the project repo (origin)      -> change with --token-var
+  templet_GIT_TOKEN  token for the vault-template repo         -> change with --template-token-var
+If a token is not found, git's own login is used as before.
 """
 
 from __future__ import annotations
 
 import argparse
+import base64
 import os
 import re
 from urllib.parse import unquote
@@ -52,6 +60,38 @@ TEMPLATE_IF_MISSING = {"Tags/README.md": "Tags/"}
 # -------------------------------------------------------------------------------------
 
 
+DEFAULT_ENV_FILE = Path(__file__).resolve().parents[2] / ".env"  # transcribe repo root
+AUTH_ENV: dict[str, str] = {}  # git config passed via environment, so tokens never show in `ps`
+
+
+def load_env_files(files: list[Path]) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for f in files:
+        if not f.is_file():
+            continue
+        for line in f.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                values.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+    return values
+
+
+def add_token(url: str, token: str | None) -> None:
+    """Send `token` as HTTP basic auth (user oauth2) for requests to `url` only."""
+    if not token or not url.startswith("http"):
+        return
+    url = re.sub(r"^(https?://)[^@/]+@", r"\1", url)  # drop credentials in the URL itself
+    header = "Authorization: Basic " + base64.b64encode(f"oauth2:{token}".encode()).decode()
+    n = int(AUTH_ENV.get("GIT_CONFIG_COUNT", "0"))
+    AUTH_ENV.update({
+        f"GIT_CONFIG_KEY_{n}": f"http.{url}.extraHeader",
+        f"GIT_CONFIG_VALUE_{n}": header,
+        "GIT_CONFIG_COUNT": str(n + 1),
+        "GIT_TERMINAL_PROMPT": "0",  # fail clearly instead of asking for a password
+    })
+
+
 def git(repo: Path, *args: str, binary: bool = False, stdin: str | None = None):
     result = subprocess.run(
         ["git", "-C", str(repo), *args],
@@ -59,7 +99,7 @@ def git(repo: Path, *args: str, binary: bool = False, stdin: str | None = None):
         capture_output=True,
         # Never download Git LFS audio while building branches: the script only
         # deletes audio paths, it never needs their content.
-        env={**os.environ, "GIT_LFS_SKIP_SMUDGE": "1"},
+        env={**os.environ, **AUTH_ENV, "GIT_LFS_SKIP_SMUDGE": "1"},
     )
     if result.returncode != 0:
         sys.exit(f"git {' '.join(args)} failed:\n{result.stderr.decode(errors='replace')}")
@@ -256,6 +296,11 @@ def cmd_sync_template(repo: Path, template_url: str, template_ref: str) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--repo", type=Path, default=Path.cwd(), help="local clone of the vault repo")
+    parser.add_argument("--env-file", type=Path, action="append", default=[],
+                        help=f"extra .env file with tokens (always read: {DEFAULT_ENV_FILE})")
+    parser.add_argument("--token-var", default="RUC_GIT_token", help="variable holding the project repo token")
+    parser.add_argument("--template-token-var", default="templet_GIT_TOKEN",
+                        help="variable holding the vault-template repo token")
     sub = parser.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("setup")
     p.add_argument("--only", nargs="*")
@@ -269,6 +314,12 @@ def main() -> None:
     p.add_argument("--template", required=True, help="URL (or path) of the vault-template repo")
     p.add_argument("--ref", default=MAIN, help="template branch (default: main)")
     args = parser.parse_args()
+
+    values = load_env_files([*args.env_file, DEFAULT_ENV_FILE])
+    token = lambda var: os.environ.get(var) or values.get(var)
+    add_token(git(args.repo, "remote", "get-url", "origin").strip(), token(args.token_var))
+    if args.cmd == "sync-template":
+        add_token(args.template, token(args.template_token_var))
 
     if args.cmd == "setup":
         cmd_setup(args.repo, args.only, args.dry_run)
