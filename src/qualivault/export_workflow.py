@@ -78,7 +78,39 @@ def _norm(text: str) -> str:
     return " ".join(re.findall(r"\w+", text.casefold()))
 
 
-def clean_transcripts(transcripts_dir: Path, corrections: Optional[Dict[str, str]] = None) -> Path:
+def merge_same_speaker(rows: list, max_gap_seconds: float = 3.0, max_duration_seconds: float = 60.0) -> list:
+    """Join consecutive rows of the same speaker (and same part audio) into one block.
+
+    Diarization and the ASR windows cut one speaker's turn into many short rows, each with
+    its own heading in Obsidian. Rows are joined when the pause between them is at most
+    `max_gap_seconds` and the joined block stays within `max_duration_seconds` (so long
+    monologues still get a timestamp now and then). Returns new rows (pandas Series).
+    """
+    out: list = []
+    for r in rows:
+        if out:
+            prev = out[-1]
+            same = (
+                str(prev.get("Speaker", "")) == str(r.get("Speaker", ""))
+                and str(prev.get("Audio", "")) == str(r.get("Audio", ""))
+            )
+            if (
+                same
+                and float(r["Start"]) - float(prev["End"]) <= max_gap_seconds
+                and float(r["End"]) - float(prev["Start"]) <= max_duration_seconds
+            ):
+                prev["Text"] = f"{prev['Text']} {r['Text']}"
+                prev["End"] = max(float(prev["End"]), float(r["End"]))
+                continue
+        out.append(r.copy())
+    return out
+
+
+def clean_transcripts(
+    transcripts_dir: Path,
+    corrections: Optional[Dict[str, str]] = None,
+    merge: Optional[Dict[str, Any]] = None,
+) -> Path:
     """Write cleaned copies of every `*.csv` in `transcripts_dir` to `_cleaned_for_validation/`.
 
     Removes Whisper subtitle credits, repetitive-loop segments, consecutive duplicates and
@@ -86,15 +118,22 @@ def clean_transcripts(transcripts_dir: Path, corrections: Optional[Dict[str, str
     case-insensitive). A segment starting before the previous one ended is dropped only if
     its text repeats what was just said; otherwise its start is moved to the previous end
     (the text is kept). Timelines restart per part (`Audio` column) in joined interviews.
+
+    `merge` (config `cleaning.merge_same_speaker`) joins consecutive rows of one speaker, see
+    `merge_same_speaker`; keys `enabled` (default true), `max_gap_seconds`, `max_duration_seconds`.
     """
     transcripts_dir = Path(transcripts_dir)
     corrections = corrections or {}
+    merge = dict(merge or {})
+    merge_on = bool(merge.get("enabled", True))
+    merge_gap = float(merge.get("max_gap_seconds", 3.0))
+    merge_dur = float(merge.get("max_duration_seconds", 60.0))
     out_dir = transcripts_dir / CLEANED_SUBFOLDER
     out_dir.mkdir(parents=True, exist_ok=True)
     for old in out_dir.glob("*.csv"):
         old.unlink()
 
-    stats = dict(files=0, end_fixed=0, subtitles=0, repetitive=0, duplicates=0, bad_time=0, rollback_dropped=0, rollback_kept=0, corrections=0)
+    stats = dict(files=0, end_fixed=0, subtitles=0, repetitive=0, duplicates=0, bad_time=0, rollback_dropped=0, rollback_kept=0, corrections=0, merged=0)
     for csv_path in sorted(transcripts_dir.glob("*.csv")):
         df = pd.read_csv(csv_path)
         if "Text" not in df.columns:
@@ -152,6 +191,10 @@ def clean_transcripts(transcripts_dir: Path, corrections: Optional[Dict[str, str
             cursor = max(cursor if cursor is not None else end, end)
             recent = (recent + [_norm(text)])[-5:]
 
+        if merge_on:
+            before = len(rows)
+            rows = merge_same_speaker(rows, merge_gap, merge_dur)
+            stats["merged"] += before - len(rows)
         pd.DataFrame(rows, columns=df.columns).to_csv(out_dir / csv_path.name, index=False, encoding="utf-8", quoting=csv.QUOTE_ALL)
         stats["files"] += 1
 
@@ -159,7 +202,7 @@ def clean_transcripts(transcripts_dir: Path, corrections: Optional[Dict[str, str
         f"🧹 Cleaned {stats['files']} transcripts -> {out_dir} | removed: subtitles {stats['subtitles']}, "
         f"loops {stats['repetitive']}, duplicates {stats['duplicates']}, bad timestamps {stats['bad_time']}, "
         f"repeated overlaps {stats['rollback_dropped']} | kept with fixed times: overlaps {stats['rollback_kept']}, "
-        f"end<start {stats['end_fixed']} | "
+        f"end<start {stats['end_fixed']} | joined same-speaker rows {stats['merged']} | "
         f"corrections applied {stats['corrections']} ({len(corrections)} rules)"
     )
     return out_dir
@@ -234,7 +277,11 @@ def run_export(project_root: Path, config: Dict[str, Any], *, target_speaker: st
     # in a vault set up for coding). Audio links stay relative to the vault root either way.
     notes_dir = vault / paths.get("obsidian_notes_subfolder", "")
 
-    cleaned = clean_transcripts(transcripts_dir, config.get("text_corrections") or {})
+    cleaned = clean_transcripts(
+        transcripts_dir,
+        config.get("text_corrections") or {},
+        (config.get("cleaning") or {}).get("merge_same_speaker"),
+    )
     # paths.compact_audio_bitrate: mp3 bitrate; the audio is 16 kHz mono speech, so 32k is plenty.
     # paths.compact_audio_in_git: true when the vault repo stores the mp3s (e.g. via Git LFS);
     # otherwise the folder is added to the vault's .gitignore.

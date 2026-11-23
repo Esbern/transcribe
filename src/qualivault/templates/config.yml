@@ -114,6 +114,14 @@ paths:
   # compact_audio_bitrate: "32k"     # mp3 bitrate for the vault audio
   # compact_audio_in_git: true       # vault repo stores the mp3s (Git LFS) instead of ignoring them
 
+# Cleaning before export (--run / --export). Rebuilt every export, no re-transcription needed.
+cleaning:
+  # Join consecutive lines of the same speaker into one block (one heading + timestamp).
+  merge_same_speaker:
+    enabled: true
+    max_gap_seconds: 3.0        # longer pause -> new block
+    max_duration_seconds: 60    # long monologues still get a new timestamp about every minute
+
 # Domain-specific transcript corrections applied during cleaning/export.
 # Format: wrong_form: correct_form
 text_corrections: {}
