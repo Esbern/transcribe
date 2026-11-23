@@ -46,7 +46,7 @@ COLLECT_PREFIX = "collect-"    # branch used to bring finished work back to main
 SYNC_BRANCH = "sync-template"  # branch used to bring vault-template updates into a project
 # Paths owned by the vault template: replaced wholesale on every sync.
 TEMPLATE_MANAGED = [".obsidian", ".gitlab", "Templates", ".tools",
-                    ".gitignore", ".gitattributes", "Student Guide.md"]
+                    ".gitignore", ".gitattributes", "Student Guide.md", "Git Introduction.md"]
 # Copied only if the project has nothing there yet (each project keeps its own codebook).
 TEMPLATE_IF_MISSING = {"Tags/README.md": "Tags/"}
 # -------------------------------------------------------------------------------------
